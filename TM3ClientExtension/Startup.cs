@@ -27,6 +27,14 @@ namespace TM3ClientExtension
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
+
+            //services.AddSingleton<ITokenProvider>(x => new WebExtensionTokenProvider
+            //{
+            //    DirectScaleUrl = "https://tm3united.corpadmin.directscalestage.com",
+            //    DirectScaleSecret = "1WaL4NwFUVqJ9E0FnpyJ4oklT9LiL-JFMAk1IClBxLXf",
+            //    ExtensionSecrets = new[] { "95AglyMuoMf9m-TVoXpdwDS3ak2Lb9H4cWPtk2T0XCHG" }
+            //});
+
             services.AddControllersWithViews();
             services.AddSingleton<IAssociateUpgradeService, AssociateUpgradeService>();
 
@@ -91,6 +99,28 @@ namespace TM3ClientExtension
                     name: "default",
                     pattern: "{controller=Home}/{action=Index}/{id?}");
             });
+        }
+    }
+
+    internal class WebExtensionTokenProvider : ITokenProvider
+    {
+        public string DirectScaleUrl { get; set; }
+        public string DirectScaleSecret { get; set; }
+        public string[] ExtensionSecrets { get; set; }
+
+        async Task<string> ITokenProvider.GetDirectScaleSecret()
+        {
+            return await Task.FromResult(DirectScaleSecret);
+        }
+
+        async Task<string> ITokenProvider.GetDirectScaleServiceUrl()
+        {
+            return await Task.FromResult(DirectScaleUrl);
+        }
+
+        async Task<IEnumerable<string>> ITokenProvider.GetExtensionSecrets()
+        {
+            return await Task.FromResult(ExtensionSecrets);
         }
     }
 }
