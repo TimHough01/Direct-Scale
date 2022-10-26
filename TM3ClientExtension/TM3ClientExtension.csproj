@@ -7,6 +7,9 @@
 
   <ItemGroup>
     <None Remove="Views\Merchants\Stripe\iframe-stripe.css" />
+    <None Remove="Hooks\" />
+    <None Remove="Hooks\Autoships\" />
+    <None Remove="Services\" />
   </ItemGroup>
 
   <ItemGroup>
@@ -16,6 +19,9 @@
 
   <ItemGroup>
     <Folder Include="Styles\Merchants\Stripe\" />
+    <Folder Include="Hooks\" />
+    <Folder Include="Hooks\Autoships\" />
+    <Folder Include="Services\" />
   </ItemGroup>
 
 </Project>

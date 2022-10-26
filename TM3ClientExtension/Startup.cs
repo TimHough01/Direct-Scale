@@ -10,6 +10,8 @@ using System.Linq;
 using System.Threading.Tasks;
 using DirectScale.Disco.Extension.Middleware;
 using DirectScale.Disco.Extension.Middleware.Models;
+using TM3ClientExtension.Services;
+using ClientExtension.Hooks.Autoships;
 
 namespace TM3ClientExtension
 {
@@ -26,6 +28,7 @@ namespace TM3ClientExtension
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddControllersWithViews();
+            services.AddSingleton<IAssociateUpgradeService, AssociateUpgradeService>();
 
             services.AddDirectScale(options =>
             {
@@ -44,9 +47,13 @@ namespace TM3ClientExtension
                 //options.AddHook("Autoships.GetAutoships", "/api/hooks/AutoshipHooks/GetAutoshipsHook");
                 //options.AddHook("Orders.SubmitOrder", "/api/hooks/OrderHooks/SubmitOrderHook");
 
+                options.AddHook<CreateAutoshipHook>();
+                options.AddHook<CancelAutoshipHook>();
+                options.AddHook<UpdateAutoshipHook>();
+
                 // WebHooks
                 //options.AddEventHandler("OrderCreated", "/api/webhooks/Order/CreateOrder");
-                
+
                 // Merchants
             });
 
