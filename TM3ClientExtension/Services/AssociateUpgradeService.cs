@@ -10,9 +10,9 @@ namespace TM3ClientExtension.Services
         private IAssociateService _associateService;
         private IAutoshipService _autoshipService;
 
-        public const int RETAIL_CUSTOMER = 1;
-        public const int PREFERRED_CUSTOMER1 = 2;
-        public const int PREFERRED_CUSTOMER2 = 3;
+        public const int RETAIL_CUSTOMER = 2;
+        public const int PREFERRED_CUSTOMER1 = 3;
+        public const int PREFERRED_CUSTOMER2 = 4;
 
         public AssociateUpgradeService(IAssociateService associateService, IAutoshipService autoshipService)
         {
@@ -44,7 +44,7 @@ namespace TM3ClientExtension.Services
             associate.AssociateType = newType;
             await this._associateService.UpdateAssociate(associate);
 
-            return false;
+            return true;
         }
 
         private Boolean IsUpgradeableType(int type)
@@ -56,7 +56,7 @@ namespace TM3ClientExtension.Services
             return false;
         }
 
-        private int AssociateNewType(int type, double numOfAutoshipItems)
+        private int AssociateNewType(int type, int numOfAutoshipItems)
         {
             var newType = 0;
             if(type == AssociateUpgradeService.RETAIL_CUSTOMER)
@@ -87,7 +87,7 @@ namespace TM3ClientExtension.Services
                 }
                 else if (numOfAutoshipItems == 1)
                 {
-                    newType = AssociateUpgradeService.PREFERRED_CUSTOMER1;
+                    newType = AssociateUpgradeService.PREFERRED_CUSTOMER1; // Downdrage
                 }
             }
 
@@ -95,11 +95,12 @@ namespace TM3ClientExtension.Services
             return newType;
         }
 
-        private async Task<double> NumberOfAutoshipItems(int associateId)
+        private async Task<int> NumberOfAutoshipItems(int associateId)
         {
             var autoships = await this._autoshipService.GetAutoships(associateId, false);
+            
             var allLineItems = from autoship in autoships select autoship.LineItems.Sum(a => a.Quantity);
-            return allLineItems.Sum();
+            return (int)Math.Round(allLineItems.Sum());
         }
 
 
