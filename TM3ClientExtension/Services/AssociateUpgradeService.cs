@@ -18,7 +18,6 @@ namespace TM3ClientExtension.Services
         {
             _associateService = associateService;
             _autoshipService = autoshipService;
-
         }
 
         public async Task<bool> UpgradeAssociate(int associateId)
@@ -41,7 +40,7 @@ namespace TM3ClientExtension.Services
                 return false;
             }
 
-            associate.AssociateType = newType;
+            associate.AssociateBaseType = newType;
             await this._associateService.UpdateAssociate(associate);
 
             return true;
