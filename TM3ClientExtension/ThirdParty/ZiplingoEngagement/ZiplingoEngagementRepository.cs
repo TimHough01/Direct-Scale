@@ -104,10 +104,10 @@ namespace TM3ClientExtension.ThirdParty.ZiplingoEngagement
                     var settings = GetSettings();
                     var parameters = new
                     {
-                        Username = "",
-                        Password = "",
+                        Username = "TM3UnitedAPI",
+                        Password = "ad1fc47b-150a-48d9-ac2f-34b2611d6296",
                         ApiUrl = "http://unifiedbetaapi.ziplingo.com/api/",
-                        LogoUrl = "",
+                        LogoUrl = "	https://tm3united.corpadmin.directscale.com/CMS/Images/Logo-Default-230px.png",
                         settings.CompanyName
                     };
 
