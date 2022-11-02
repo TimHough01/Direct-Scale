@@ -12,6 +12,13 @@ using DirectScale.Disco.Extension.Middleware;
 using DirectScale.Disco.Extension.Middleware.Models;
 using TM3ClientExtension.Services;
 using ClientExtension.Hooks.Autoships;
+using TM3ClientExtension.Repositories;
+using TM3ClientExtension.Services.DailyRun;
+using TM3ClientExtension.ThirdParty.ZiplingoEngagement.Interfaces;
+using TM3ClientExtension.ThirdParty.ZiplingoEngagement;
+using TM3ClientExtension.Hooks.Associate;
+using TM3ClientExtension.Hooks.Order;
+using TM3ClientExtension.Hooks;
 
 namespace TM3ClientExtension
 {
@@ -38,6 +45,16 @@ namespace TM3ClientExtension
             services.AddControllersWithViews();
             services.AddSingleton<IAssociateUpgradeService, AssociateUpgradeService>();
 
+            //Repositories
+            services.AddSingleton<ICustomLogRepository, CustomLogRepository>();
+            services.AddSingleton<IDailyRunRepository, DailyRunRepository>();
+            services.AddSingleton<IZiplingoEngagementRepository, ZiplingoEngagementRepository>();
+
+            //Services
+            services.AddSingleton<IDailyRunService, DailyRunService>();
+            services.AddSingleton<IZiplingoEngagementService, ZiplingoEngagementService>();
+
+
             services.AddDirectScale(options =>
             {
                 // This Page and Page Link will show for all users in the DirectScale Platform
@@ -58,6 +75,13 @@ namespace TM3ClientExtension
                 options.AddHook<CreateAutoshipHook>();
                 options.AddHook<CancelAutoshipHook>();
                 options.AddHook<UpdateAutoshipHook>();
+
+                options.AddHook<UpdateAssociateHook>();
+                options.AddHook<WriteApplication>();
+                options.AddHook<FinalizeAcceptedOrderHook>();
+                options.AddHook<FinalizeNonAcceptedOrderHook>();
+                options.AddHook<LogRealtimeRankAdvanceHook>();
+                options.AddHook<MarkPackageShippedHook>();
 
                 // WebHooks
                 //options.AddEventHandler("OrderCreated", "/api/webhooks/Order/CreateOrder");
