@@ -17,12 +17,14 @@ namespace ClientExtension.Hooks.Autoships
         private IAssociateUpgradeService _associateUpgradeService;
         private IZiplingoEngagementService _ziplingoEngagementService;
         private IAssociateService _associateService;
+        private readonly IAutoshipService _autoshipService;
 
-        public CreateAutoshipHook(IAssociateUpgradeService associateUpgradeService, IZiplingoEngagementService ziplingoEngagementService, IAssociateService associateService)
+        public CreateAutoshipHook(IAssociateUpgradeService associateUpgradeService, IZiplingoEngagementService ziplingoEngagementService, IAssociateService associateService, IAutoshipService autoshipService)
         {
             _associateUpgradeService = associateUpgradeService;
             _ziplingoEngagementService = ziplingoEngagementService ?? throw new ArgumentNullException(nameof(ziplingoEngagementService));
             _associateService = associateService ?? throw new ArgumentNullException(nameof(associateService));
+            _autoshipService = autoshipService;
         }
 
         public async Task<CreateAutoshipHookResponse> Invoke(CreateAutoshipHookRequest request, Func<CreateAutoshipHookRequest, Task<CreateAutoshipHookResponse>> func)
@@ -30,8 +32,9 @@ namespace ClientExtension.Hooks.Autoships
             var response = await func(request);
             await this._associateUpgradeService.UpgradeAssociate(request.AutoshipInfo.AssociateId);
 
-            _ziplingoEngagementService.CreateAutoshipTrigger(request.AutoshipInfo);
-            var associateInfo = await _associateService.GetAssociate(request.AutoshipInfo.AssociateId);
+            var autoshipInfo = await _autoshipService.GetAutoship(response.AutoshipId);
+            _ziplingoEngagementService.CreateAutoshipTrigger(autoshipInfo);
+            var associateInfo = await _associateService.GetAssociate(autoshipInfo.AssociateId);
             _ziplingoEngagementService.UpdateContact(associateInfo);
 
             return response;
