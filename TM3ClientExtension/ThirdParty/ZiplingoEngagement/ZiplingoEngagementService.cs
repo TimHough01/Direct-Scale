@@ -1346,14 +1346,14 @@ namespace TM3ClientExtension.ThirdParty.ZiplingoEngagement
             return null;
         }
 
-        public void CreateAutoshipTrigger(Autoship autoshipInfo)
+        public async void CreateAutoshipTrigger(Autoship autoshipInfo)
         {
             try
             {
                 var company = _companyService.GetCompany();
                 var settings = _ZiplingoEngagementRepository.GetSettings();
-
-                AutoshipInfoMap req = new AutoshipInfoMap();
+				var associateInfo = await _distributorService.GetAssociate(autoshipInfo.AssociateId);
+				AutoshipInfoMap req = new AutoshipInfoMap();
 
                 req.AssociateId = autoshipInfo.AssociateId;
                 req.AutoshipId = autoshipInfo.AutoshipId;
@@ -1369,7 +1369,12 @@ namespace TM3ClientExtension.ThirdParty.ZiplingoEngagement
                 req.PaymentMerchantId = autoshipInfo.PaymentMerchantId;
                 req.PaymentMethodId = autoshipInfo.PaymentMethodId;
                 req.ShipAddress = autoshipInfo.ShipAddress;
-                req.ShipMethodId = autoshipInfo.ShipMethodId;
+				req.FirstName = associateInfo.DisplayFirstName;
+				req.LastName = associateInfo.DisplayLastName;
+				req.Email = associateInfo.EmailAddress;
+				req.Phone = associateInfo.PrimaryPhone;
+				req.ProductNames = String.Join(",", autoshipInfo.LineItems.Select(l => l.ProductName));
+				req.ShipMethodId = autoshipInfo.ShipMethodId;
                 req.StartDate = autoshipInfo.StartDate;
                 req.Status = autoshipInfo.Status;
                 req.SubTotal = autoshipInfo.SubTotal;
@@ -1454,14 +1459,14 @@ namespace TM3ClientExtension.ThirdParty.ZiplingoEngagement
 
         }
 
-        public void UpdateAutoshipTrigger(Autoship updatedAutoshipInfo)
+        public async void UpdateAutoshipTrigger(Autoship updatedAutoshipInfo)
         {
             try
             {
                 var company = _companyService.GetCompany();
                 var settings = _ZiplingoEngagementRepository.GetSettings();
-
-                AutoshipInfoMap req = new AutoshipInfoMap();
+				var associateInfo = await _distributorService.GetAssociate(updatedAutoshipInfo.AssociateId);
+				AutoshipInfoMap req = new AutoshipInfoMap();
 
                 req.AssociateId = updatedAutoshipInfo.AssociateId;
                 req.AutoshipId = updatedAutoshipInfo.AutoshipId;
@@ -1477,7 +1482,12 @@ namespace TM3ClientExtension.ThirdParty.ZiplingoEngagement
                 req.PaymentMerchantId = updatedAutoshipInfo.PaymentMerchantId;
                 req.PaymentMethodId = updatedAutoshipInfo.PaymentMethodId;
                 req.ShipAddress = updatedAutoshipInfo.ShipAddress;
-                req.ShipMethodId = updatedAutoshipInfo.ShipMethodId;
+				req.FirstName = associateInfo.DisplayFirstName;
+				req.LastName = associateInfo.DisplayLastName;
+				req.Email = associateInfo.EmailAddress;
+				req.Phone = associateInfo.PrimaryPhone;
+				req.ProductNames = String.Join(",", updatedAutoshipInfo.LineItems.Select(l => l.ProductName));
+				req.ShipMethodId = updatedAutoshipInfo.ShipMethodId;
                 req.StartDate = updatedAutoshipInfo.StartDate;
                 req.Status = updatedAutoshipInfo.Status;
                 req.SubTotal = updatedAutoshipInfo.SubTotal;
