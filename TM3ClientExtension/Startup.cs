@@ -93,6 +93,7 @@ namespace TM3ClientExtension
             {
                 options.AllowSynchronousIO = true;
             });
+            services.AddSwaggerGen();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -116,6 +117,11 @@ namespace TM3ClientExtension
             app.UseAuthorization();
 
             app.UseDirectScale();
+            //Swagger
+            app.UseSwagger();
+            app.UseSwaggerUI(c => {
+                c.SwaggerEndpoint("/swagger/v1/swagger.json", "My API V2");
+            });
 
             app.UseEndpoints(endpoints =>
             {
