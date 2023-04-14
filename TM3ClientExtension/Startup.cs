@@ -19,6 +19,8 @@ using TM3ClientExtension.ThirdParty.ZiplingoEngagement;
 using TM3ClientExtension.Hooks.Associate;
 using TM3ClientExtension.Hooks.Order;
 using TM3ClientExtension.Hooks;
+using WebExtension.Repositories;
+using WebExtension.Services;
 
 namespace TM3ClientExtension
 {
@@ -83,10 +85,13 @@ namespace TM3ClientExtension
                 options.AddHook<LogRealtimeRankAdvanceHook>();
                 options.AddHook<MarkPackageShippedHook>();
 
-                // WebHooks
-                //options.AddEventHandler("OrderCreated", "/api/webhooks/Order/CreateOrder");
+            //Repositories
+            services.AddSingleton<ICustomLogRepository, CustomLogRepository>();
+            services.AddSingleton<IGenericReportRepository, GenericReportRepository>();
+            services.AddSingleton<IReportSourceRepository, ReportSourceRepository>();
 
                 // Merchants
+            services.AddSingleton<IGenericReportService, GenericReportService>();
             });
 
             services.Configure<IISServerOptions>(options =>
