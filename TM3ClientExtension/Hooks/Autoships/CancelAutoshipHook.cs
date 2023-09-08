@@ -23,7 +23,8 @@ namespace ClientExtension.Hooks.Autoships
         public async Task<CancelAutoshipHookResponse> Invoke(CancelAutoshipHookRequest request, Func<CancelAutoshipHookRequest, Task<CancelAutoshipHookResponse>> func)
         {
             var response = await func(request);
-            await this._associateUpgradeService.UpgradeAssociate(request.AutoshipInfo.AssociateId);
+            // Removed the logic to upgrade
+            //await this._associateUpgradeService.UpgradeAssociate(request.AutoshipInfo.AssociateId);
 
             return response;
         }

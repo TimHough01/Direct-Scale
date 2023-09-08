@@ -30,7 +30,8 @@ namespace ClientExtension.Hooks.Autoships
         public async Task<CreateAutoshipHookResponse> Invoke(CreateAutoshipHookRequest request, Func<CreateAutoshipHookRequest, Task<CreateAutoshipHookResponse>> func)
         {
             var response = await func(request);
-            await this._associateUpgradeService.UpgradeAssociate(request.AutoshipInfo.AssociateId);
+            // Removed the logic to upgrade
+            //await this._associateUpgradeService.UpgradeAssociate(request.AutoshipInfo.AssociateId);
 
             var autoshipInfo = await _autoshipService.GetAutoship(response.AutoshipId);
             _ziplingoEngagementService.CreateAutoshipTrigger(autoshipInfo);
