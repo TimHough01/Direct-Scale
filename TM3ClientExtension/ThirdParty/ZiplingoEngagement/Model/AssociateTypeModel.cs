@@ -14,5 +14,8 @@ namespace TM3ClientExtension.ThirdParty.ZiplingoEngagement.Model
         public string LogoUrl { get; set; }
         public string CompanyName { get; set; }
         public string CompanyDomain { get; set; }
+        public string SponsorName { get; set; }
+        public string SponsorEmail { get; set; }
+        public string SponsorMobile { get; set; }
     }
 }
