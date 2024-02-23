@@ -9,7 +9,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Net.Security;
-using System.Threading.Tasks;
 using TM3ClientExtension.Repositories;
 using TM3ClientExtension.ThirdParty.ZiplingoEngagement.Model;
 using TM3ClientExtension.ThirdParty.ZiplingoEngagement.Interfaces;
@@ -996,21 +995,40 @@ namespace TM3ClientExtension.ThirdParty.ZiplingoEngagement
         {
             try
             {
-                var company = _companyService.GetCompany();
-                var associateTypeModel = new AssociateTypeModel();
-                var settings = _ZiplingoEngagementRepository.GetSettings();
-                var associateSummary = _distributorService.GetAssociate(associateId);
+                int enrollerID = 0;
                 int sponsorID = 0;
-                Associate associateInstance = new Associate();  // Create an instance of Associate
-                Task<Associate> sponsorSummary = Task.FromResult(associateInstance);
+                if (_treeService.GetNodeDetail(new NodeId(associateId, 0), TreeType.Enrollment).Result.UplineId != null)
+                {
+                    enrollerID = _treeService.GetNodeDetail(new NodeId(associateId, 0), TreeType.Enrollment)?.Result.UplineId.AssociateId ?? 0;
+                }
                 if (_treeService.GetNodeDetail(new NodeId(associateId, 0), TreeType.Unilevel).Result.UplineId != null)
                 {
                     sponsorID = _treeService.GetNodeDetail(new NodeId(associateId, 0), TreeType.Unilevel)?.Result.UplineId.AssociateId ?? 0;
                 }
+
+                Associate sponsorSummary = new Associate();
+                Associate enrollerSummary = new Associate();
+                if (enrollerID <= 0)
+                {
+                    enrollerSummary = new Associate();
+                }
+                else
+                {
+                    enrollerSummary =  _distributorService.GetAssociate(enrollerID).GetAwaiter().GetResult();
+                }
                 if (sponsorID > 0)
                 {
-                    sponsorSummary = _distributorService.GetAssociate(sponsorID);
+                    sponsorSummary = _distributorService.GetAssociate(sponsorID).GetAwaiter().GetResult();
                 }
+                else
+                {
+                    sponsorSummary = enrollerSummary;
+                }
+
+                var company = _companyService.GetCompany();
+                var associateTypeModel = new AssociateTypeModel();
+                var settings = _ZiplingoEngagementRepository.GetSettings();
+                var associateSummary = _distributorService.GetAssociate(associateId);
                 associateTypeModel.AssociateId = associateId;
                 associateTypeModel.FirstName = associateSummary.Result.DisplayFirstName;
                 associateTypeModel.LastName = associateSummary.Result.DisplayLastName;
@@ -1023,9 +1041,9 @@ namespace TM3ClientExtension.ThirdParty.ZiplingoEngagement
                 associateTypeModel.CompanyDomain = company.Result.BackOfficeHomePageURL;
                 associateTypeModel.LogoUrl = settings.LogoUrl;
                 associateTypeModel.CompanyName = settings.CompanyName;
-                associateTypeModel.SponsorName = sponsorSummary.Result.DisplayFirstName + ' ' + sponsorSummary.Result.DisplayLastName;
-                associateTypeModel.SponsorEmail = sponsorSummary.Result.EmailAddress;
-                associateTypeModel.SponsorMobile = sponsorSummary.Result.PrimaryPhone;
+                associateTypeModel.SponsorName = sponsorSummary.DisplayFirstName + ' ' + sponsorSummary.DisplayLastName;
+                associateTypeModel.SponsorMobile = sponsorSummary.PrimaryPhone;
+                associateTypeModel.SponsorEmail = sponsorSummary.EmailAddress;
 
                 var strData = JsonConvert.SerializeObject(associateTypeModel);
 
