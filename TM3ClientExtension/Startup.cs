@@ -55,6 +55,7 @@ namespace TM3ClientExtension
             //Services
             services.AddSingleton<IDailyRunService, DailyRunService>();
             services.AddSingleton<IZiplingoEngagementService, ZiplingoEngagementService>();
+            services.AddSingleton<ICommissionImportService, CommissionImportService>();
 
 
             services.AddDirectScale(options =>
