@@ -3,58 +3,86 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using RestSharp;
+using RestSharp.Authenticators;
 using System;
 using System.Collections.Generic;
+using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Net.Security;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using TM3ClientExtension.Models;
+using TM3ClientExtension.Repositories;
+using static Dapper.SqlMapper;
 
 namespace TM3ClientExtension.Services
 {
     public interface ICommissionImportService
     {
-        Task<List<Users>> GetWPUsers();
+        Task<List<Users>> GetWPUsers(string email);
         Task<List<UnreleasedBonusReaponse>> GetBonuses(CommissionBonuseRequest req);
         Task<dynamic> ManulaBonuses(CommissionImportRequest req);
+        Task<dynamic> updateuserImage(int userID);
+        Task<string> GetEmailByID(int sponsorid);
     }
     public class CommissionImportService : ICommissionImportService
     {
         private static readonly HttpClient client = new HttpClient();
-        public CommissionImportService()
+        private readonly IUserRepository _userRepository;
+        public CommissionImportService(IUserRepository userRepository)
         {
-
+            _userRepository = userRepository;
         }
-        public async Task<List<Users>> GetWPUsers()
+        public async Task<dynamic> updateuserImage(int userID)
         {
-            
-            client.BaseAddress = new Uri("https://stg-mytm3-317.uw2.rapydapps.cloud/");
-            client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-            var authToken = Convert.ToBase64String(System.Text.Encoding.ASCII.GetBytes("mahaveer@ziplingo.com:Clover@#69"));
-            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", authToken);
+            using var client = new HttpClient();
 
-            try
+            var url = "https://stg-mytm3-317.uw2.rapydapps.cloud/wp-json/wc/v3/customers/2122";
+
+            var request = new HttpRequestMessage(HttpMethod.Put, url);
+            request.Headers.Add("Authorization", "basic Y2tfYWFlNWRmMThjMTFhNDRhZjRhZGNkNzczZTljZjdiYmYzNjBhNjNlZDpjc182NTU1MzgzNWVlMGFlMjgyZTc5Y2NiMTNlNDY0YjJhY2FmNWFjZDFm");
+            request.Headers.Add("accept", "application/json");
+
+            var body = new
             {
-                HttpResponseMessage response = await client.GetAsync($"wp-admin/wp/v2/users?per_page=10");
-                response.EnsureSuccessStatusCode();
+                avatar_url = "https://tm3united.corpadmin.directscale.com/BackOffice/ProfileImage?id=2"
+            };
 
-                string responseBody = await response.Content.ReadAsStringAsync();
+            string jsonBody = JsonConvert.SerializeObject(body);
 
-                var users = JsonConvert.DeserializeObject<List<Users>>(responseBody);
-                return users;
-               
-            }
-            catch (HttpRequestException e)
-            {
-                return new List<Users>();
-            }
+            request.Content = new StringContent(jsonBody, Encoding.UTF8, "application/json");
+
+            var response = await client.SendAsync(request);
+
+            response.EnsureSuccessStatusCode();
+
+            var result = await response.Content.ReadAsStringAsync();
+
+            return result;
+        }
+
+        public async Task<List<Users>> GetWPUsers(string email)
+        {
+            var customers = email != "" ? "?email=" + email : "";
+            var client = new HttpClient();
+            var request = new HttpRequestMessage(HttpMethod.Get, "https://stg-mytm3-317.uw2.rapydapps.cloud/wp-json/wc/v3/customers"+ customers);
+            request.Headers.Add("Authorization", "Basic Y2tfYWFlNWRmMThjMTFhNDRhZjRhZGNkNzczZTljZjdiYmYzNjBhNjNlZDpjc182NTU1MzgzNWVlMGFlMjgyZTc5Y2NiMTNlNDY0YjJhY2FmNWFjZDFm");
+            var response = await client.SendAsync(request);
+              response.EnsureSuccessStatusCode();
+
+
+            var users = JsonConvert.DeserializeObject<List<Users>>(await response.Content.ReadAsStringAsync());
+            return users;
+
+           
         }
         public async Task<List<UnreleasedBonusReaponse>> GetBonuses(CommissionBonuseRequest req)
         {
             var client = new HttpClient();
             var request = new HttpRequestMessage(HttpMethod.Get, $"https://api.pillarshub.com/api/v1/Bonuses/Unreleased?date={req.Date}&nodeIds={req.NodeIds}&offset={req.Offset}&count={req.Count}");
-            request.Headers.Add("Authorization", "Bearer ");
+            request.Headers.Add("Authorization", "Bearer cGF1bGordG0zQHRhdmFoYXR6LmNvbTp0bTNQaWxsYXI1");
             var response = client.SendAsync(request).Result;
             response.EnsureSuccessStatusCode();
             var result = await response.Content.ReadAsStringAsync();
@@ -67,7 +95,7 @@ namespace TM3ClientExtension.Services
             var url = "https://api.pillarshub.com/api/v1/Bonuses/Manual";
 
             var request = new HttpRequestMessage(HttpMethod.Post, url);
-            request.Headers.Add("Authorization", "Bearer ");
+            request.Headers.Add("Authorization", "Basic cGF1bGordG0zQHRhdmFoYXR6LmNvbTp0bTNQaWxsYXI1");
             request.Headers.Add("accept", "application/json");
             request.Headers.Add("content-type", "application/*+json");
 
@@ -90,5 +118,10 @@ namespace TM3ClientExtension.Services
             var result = await response.Content.ReadAsStringAsync();
             return JsonConvert.DeserializeObject<dynamic>(result);
         }
+        public Task<string> GetEmailByID(int sponsorid)
+        {
+            return _userRepository.GetEmailByID(sponsorid);
+        }
+
     }
 }
