@@ -17,56 +17,57 @@ namespace TM3ClientExtension.Controllers
             _commissionImportservice = commissionImportservice;
         }
         [HttpGet]
-        [Route("Importcommission")]
+        [Route("ManualBonus")]
         public IActionResult ImportCommission()
         {
-            var users = _commissionImportservice.GetWPUsers("").Result;
+            string[] UserRole = { "suremember-business-consultant", "suremember-retail-customer", "suremember-preferred-customer" };
+            
+            foreach (var item in UserRole)
+            {
+                var users = _commissionImportservice.GetWPUsers(item).Result;
 
-            //var nodeids = users.Select(x => x.ID.ToString()).ToList();
-            //string[] nodeid = { "1640", "305", "2" };
-            //var request = new CommissionBonuseRequest
-            //{
-            //    Date = DateTime.Now,
-            //    NodeIds = nodeid.ToList(),
-            //    Offset = 1,
-            //    Count = 10
-            //};
+                foreach (var user in users)
+                {
+                    var Bonuses = _commissionImportservice.GetCommissionDetails(user.id).Result;
 
-            //var Bonuses = _commissionImportservice.GetBonuses(request).Result;
+                    if (Bonuses != null)
+                    {
+                            var req = new CommissionImportRequest
+                            {
+                                Date = Bonuses.date,
+                                NodeIds = user.id.ToString(),
+                                comment = Bonuses.comment,
+                                amount = Bonuses.amount
 
-            //if (Bonuses != null)
-            //{
-            //    foreach (var bonus in Bonuses)
-            //    {
-            //        var req = new CommissionImportRequest
-            //        {
-            //            Date = DateTime.Now,
-            //            NodeIds = bonus.NodeId,
-            //            comment = bonus.Description,
-            //            amount = bonus.Amount
-
-            //        };
-
-            //        _commissionImportservice.ManulaBonuses(req);
-            //    }
+                            };
+                            _commissionImportservice.ManulaBonuses(req);
+                    }
+                }
 
                
-            //}
-
-
-            return Ok(users);
+            }
+            return Ok();
         }
-        [HttpPut]
-        [Route("updateimages")]
-        public IActionResult updateimages(int userid)
+        [HttpPost]
+        [Route("ManualBonusTest")]
+        public IActionResult ManualBonusTest()
         {
-           var response =  _commissionImportservice.updateuserImage(userid);
-            return Ok(response);
-        }
+            var req = new CommissionImportRequest
+            {
+                Date = DateTime.Now,
+                NodeIds = "806",
+                comment = "test",
+                amount = 10
 
+            };
+           var response =  _commissionImportservice.ManulaBonuses(req).Result; 
+            
+            return Ok(response);
+
+        }
         [HttpGet]
         [Route("ChangeSponsorID")]
-        public IActionResult ChangeSponsorID()
+        public IActionResult ChangeSponsorIDs()
         {
             var users = _commissionImportservice.GetWPUsers("").Result;
             foreach (var user in users)
@@ -77,17 +78,9 @@ namespace TM3ClientExtension.Controllers
                 {
                     var getSponsorDetailsInDS = _commissionImportservice.GetEmailByID(sponsorId).Result;
 
-                    var GetWPuserByEmail = _commissionImportservice.GetWPUsers(getSponsorDetailsInDS).Result;
-
-
-
                 }
 
-
             }
-
-            
-
 
             return Ok(users);
         }

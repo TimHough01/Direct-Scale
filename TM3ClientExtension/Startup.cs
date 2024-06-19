@@ -51,7 +51,7 @@ namespace TM3ClientExtension
             services.AddSingleton<ICustomLogRepository, CustomLogRepository>();
             services.AddSingleton<IDailyRunRepository, DailyRunRepository>();
             services.AddSingleton<IZiplingoEngagementRepository, ZiplingoEngagementRepository>();
-
+           
             //Services
             services.AddSingleton<IDailyRunService, DailyRunService>();
             services.AddSingleton<IZiplingoEngagementService, ZiplingoEngagementService>();
@@ -90,7 +90,7 @@ namespace TM3ClientExtension
             services.AddSingleton<ICustomLogRepository, CustomLogRepository>();
             services.AddSingleton<IGenericReportRepository, GenericReportRepository>();
             services.AddSingleton<IReportSourceRepository, ReportSourceRepository>();
-
+            services.AddSingleton<IUserRepository, UserRepository>();
                 // Merchants
             services.AddSingleton<IGenericReportService, GenericReportService>();
             });
