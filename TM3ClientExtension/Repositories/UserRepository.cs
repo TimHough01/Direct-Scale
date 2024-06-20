@@ -15,7 +15,7 @@ namespace TM3ClientExtension.Repositories
     public interface IUserRepository
     {
         Task<string> GetEmailByID(int sponsorid);
-        Task<UnreleasedBonusReaponse> GetCommissionDetails(int associateId);
+        Task<List<UnreleasedBonusReaponse>> GetCommissionDetails();
 
 
     }
@@ -42,23 +42,20 @@ namespace TM3ClientExtension.Repositories
                 return Email;
             }
         }
-        public async Task<UnreleasedBonusReaponse> GetCommissionDetails(int associateId)
+        public async Task<List<UnreleasedBonusReaponse>> GetCommissionDetails()
         {
             using (var dbConnection = new SqlConnection(await _dataService.GetClientConnectionString()))
             {
-                var parameters = new
-                {
-                    associateId = associateId
-                };
-                var sql = @$"select  d.recordnumber as nodeId,Max(cp.EndDate) as date ,SUM(h.Amount) as amount,cp.PeriodName as comment  from CRM_CommissionHistory h
+                
+                var sql = @$"select  d.recordnumber as nodeId,Max(cp.EndDate) as date ,SUM(h.Amount) as amount,cp.PeriodName as comment,d.associatetype as associateRole from CRM_CommissionHistory h
 								 inner join crm_commissionperiods cp on cp.recordnumber=h.ComPeriodID
 								 inner join CRM_Distributors d on d.recordnumber=h.AssociateID
-								 where d.recordnumber={associateId}
-								 group by d.recordnumber,cp.PeriodName";
+								
+								 group by d.recordnumber,cp.PeriodName,d.associatetype";
 
-                var Email = await dbConnection.QueryFirstAsync<UnreleasedBonusReaponse>(sql, parameters);
+                var Email = await dbConnection.QueryAsync<UnreleasedBonusReaponse>(sql);
 
-                return Email;
+                return Email.ToList();
             }
         }
     }

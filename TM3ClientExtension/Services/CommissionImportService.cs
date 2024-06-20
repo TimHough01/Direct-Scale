@@ -21,13 +21,13 @@ namespace TM3ClientExtension.Services
 {
     public interface ICommissionImportService
     {
-        Task<List<Users>> GetWPUsers(string UserRole);
+        Task<List<Users>> GetAllWPUsers(string UserRole);
         //Task<List<UnreleasedBonusReaponse>> GetBonuses(CommissionBonuseRequest req);
         Task<dynamic> ManulaBonuses(CommissionImportRequest req);
         //Task<dynamic> updateuserImage(int userID);
         Task<string> GetEmailByID(int sponsorid);
         Task<dynamic> GetCompensationPlans();
-        Task<UnreleasedBonusReaponse> GetCommissionDetails(int associateid);
+        Task<List<UnreleasedBonusReaponse>> GetCommissionDetails();
     }
     public class CommissionImportService : ICommissionImportService
     {
@@ -37,11 +37,33 @@ namespace TM3ClientExtension.Services
         {
             _userRepository = userRepository;
         }
+        public async Task<List<Users>> GetAllWPUsers(string UserRole)
+        {
+            var allUsers = new List<Users>();
+            int page = 1;
+            int perPage = 100;
+            bool hasMoreUsers = true;
 
-        public async Task<List<Users>> GetWPUsers(string UserRole )
+            while (hasMoreUsers)
+            {
+                var users = await GetWPUsers(page, perPage, UserRole);
+                if (users.Count > 0)
+                {
+                    allUsers.AddRange(users);
+                    page++;
+                }
+                else
+                {
+                    hasMoreUsers = false;
+                }
+            }
+            return allUsers;
+        }
+
+        public async Task<List<Users>> GetWPUsers(int page, int per_page ,string UserRole )
         {           
                 var client = new HttpClient();
-                var request = new HttpRequestMessage(HttpMethod.Get, $"https://stg-mytm3-317.uw2.rapydapps.cloud/wp-json/wc/v3/customers?role={UserRole}");
+                var request = new HttpRequestMessage(HttpMethod.Get, $"https://stg-mytm3-317.uw2.rapydapps.cloud/wp-json/wc/v3/customers?page={page}&per_page={per_page}&role={UserRole}");
                 request.Headers.Add("Authorization", "Basic Y2tfYWFlNWRmMThjMTFhNDRhZjRhZGNkNzczZTljZjdiYmYzNjBhNjNlZDpjc182NTU1MzgzNWVlMGFlMjgyZTc5Y2NiMTNlNDY0YjJhY2FmNWFjZDFm");
                 var response = await client.SendAsync(request);
                 response.EnsureSuccessStatusCode();
@@ -49,10 +71,11 @@ namespace TM3ClientExtension.Services
                 return users;
             
         }
-        
-        public async Task<UnreleasedBonusReaponse> GetCommissionDetails(int associateid)
+       
+
+        public async Task<List<UnreleasedBonusReaponse>> GetCommissionDetails()
         {
-            return await _userRepository.GetCommissionDetails(associateid);
+            return await _userRepository.GetCommissionDetails();
         }
 
         public async Task<dynamic> ManulaBonuses(CommissionImportRequest req)
