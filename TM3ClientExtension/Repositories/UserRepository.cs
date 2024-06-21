@@ -46,16 +46,16 @@ namespace TM3ClientExtension.Repositories
         {
             using (var dbConnection = new SqlConnection(await _dataService.GetClientConnectionString()))
             {
-                
-                var sql = @$"select  d.recordnumber as nodeId,Max(cp.EndDate) as date ,SUM(h.Amount) as amount,cp.PeriodName as comment,d.associatetype as associateRole from CRM_CommissionHistory h
-								 inner join crm_commissionperiods cp on cp.recordnumber=h.ComPeriodID
-								 inner join CRM_Distributors d on d.recordnumber=h.AssociateID
-								
-								 group by d.recordnumber,cp.PeriodName,d.associatetype";
-
-                var Email = await dbConnection.QueryAsync<UnreleasedBonusReaponse>(sql);
-
-                return Email.ToList();
+                var sql = @$"
+                    SELECT
+	                    d.recordnumber as nodeId, h.PostDate as date, h.Amount as amount, 
+	                    IIF(LEN(H.Comment) > 0, H.Comment + ' (' + cp.PeriodName + ' ' +FORMAT(cp.BeginDate, 'MM/dd/yyyy') + '-' + FORMAT(cp.EndDate, 'MM/dd/yyyy') + ')', cp.PeriodName) as comment, d.associatetype as associateRole
+                    FROM CRM_CommissionHistory h
+	                    inner join crm_commissionperiods cp on cp.recordnumber=h.ComPeriodID
+	                    inner join CRM_Distributors d on d.recordnumber=h.AssociateID
+                    ORDER BY PostDate
+                ";
+                return (await dbConnection.QueryAsync<UnreleasedBonusReaponse>(sql)).ToList();
             }
         }
     }
