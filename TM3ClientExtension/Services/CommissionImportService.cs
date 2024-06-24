@@ -28,6 +28,9 @@ namespace TM3ClientExtension.Services
         Task<string> GetEmailByID(int sponsorid);
         Task<dynamic> GetCompensationPlans();
         Task<List<UnreleasedBonusReaponse>> GetCommissionDetails();
+        Task<dynamic> PostHistoricalData(HistoricalValuesRequest req);
+        Task<List<Periods>> GetPeriodsByCompensationPlanId(int compensationPlanId);
+        Task<List<HistoricalValues>> GetHistoricalValuesData();
     }
     public class CommissionImportService : ICommissionImportService
     {
@@ -51,6 +54,10 @@ namespace TM3ClientExtension.Services
                 {
                     allUsers.AddRange(users);
                     page++;
+                    if (users.Count < 100)
+                    {
+                        hasMoreUsers = false;
+                    }
                 }
                 else
                 {
@@ -76,6 +83,10 @@ namespace TM3ClientExtension.Services
         public async Task<List<UnreleasedBonusReaponse>> GetCommissionDetails()
         {
             return await _userRepository.GetCommissionDetails();
+        }
+        public async Task<List<HistoricalValues>> GetHistoricalValuesData()
+        {
+            return await _userRepository.GetHistoricalValuesData();
         }
 
         public async Task<dynamic> ManulaBonuses(CommissionImportRequest req)
@@ -115,6 +126,47 @@ namespace TM3ClientExtension.Services
             response.EnsureSuccessStatusCode();
             var result = await response.Content.ReadAsStringAsync();
             return Newtonsoft.Json.JsonConvert.DeserializeObject<dynamic>(result);
+
+        }
+        public async Task<List<Periods>> GetPeriodsByCompensationPlanId(int compensationPlanId)
+        {
+            var client = new HttpClient();
+            var request = new HttpRequestMessage(HttpMethod.Get, $"https://api.pillarshub.com/api/v1/CompensationPlans/{compensationPlanId}/Periods");
+            request.Headers.Add("Authorization", "Ufgorzw1hP6SPVkr1oP9ZiNWNU1FnNivylxcPONgkWp9");
+            request.Headers.Add("accept", "application/json");
+            var response = await client.SendAsync(request);
+            response.EnsureSuccessStatusCode();
+            var Period = JsonConvert.DeserializeObject<List<Periods>>(await response.Content.ReadAsStringAsync());
+
+            return Period;
+
+        }
+
+        public async Task<dynamic> PostHistoricalData(HistoricalValuesRequest req)
+        {
+            var client = new HttpClient();
+            var request = new HttpRequestMessage(HttpMethod.Post, "https://api.pillarshub.com/api/v1/HistoricalValues");
+            request.Headers.Add("Authorization", "Ufgorzw1hP6SPVkr1oP9ZiNWNU1FnNivylxcPONgkWp9");
+            request.Headers.Add("accept", "application/json");
+            var contentJson = new
+            {
+                key = req.key,
+                periodId = req.periodId,
+                nodeId = req.nodeId,
+                sumValue = req.sumValue,
+                lastValue = req.lastValue,
+                postDate = req.postDate
+            };
+            var content = new StringContent(
+                JsonConvert.SerializeObject(contentJson),
+                Encoding.UTF8,
+                "application/+json"
+            );
+          
+            request.Content = content;
+            var response = client.Send(request);
+            var result = await response.Content.ReadAsStringAsync();
+            return result;
 
         }
 
