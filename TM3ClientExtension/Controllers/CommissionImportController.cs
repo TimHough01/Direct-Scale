@@ -134,10 +134,12 @@ namespace TM3ClientExtension.Controllers
                 {
                     var GetWPUserID = users.Where(x => tm3user.AssociateId.ToString() == x.meta_data.FirstOrDefault(m => m.key == "tm3-customer-id")?.value.ToString());
 
-                    //remove the time in pillars begin date and end date 
-                    var Periods = GetPeriods.Where(x => x.Begin <= tm3user.BeginDate && x.End >= tm3user.EndDate);
+                    //remove the time in pillars begin date and e
+                    var Periods = GetPeriods.Where(x => x.Begin.Date <= tm3user.BeginDate.Date && x.End.Date >= tm3user.EndDate.Date);
+
 
                     var CheckKey = HistoricalValuesKey.kpis.Where(x => x.Value == tm3user.Key);
+
 
                     if (GetWPUserID.Count() > 0 && Periods.Count() > 0 && CheckKey.Count() > 0)
                     {
