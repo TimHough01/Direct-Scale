@@ -30,7 +30,7 @@ namespace TM3ClientExtension.Services
         Task<List<UnreleasedBonusReaponse>> GetCommissionDetails();
         Task<dynamic> PostHistoricalData(HistoricalValuesRequest req);
         Task<List<Periods>> GetPeriodsByCompensationPlanId(int compensationPlanId);
-        Task<List<HistoricalValues>> GetHistoricalValuesData();
+        Task<List<HistoricalValues>> GetHistoricalValuesData(int PeriodId);
     }
     public class CommissionImportService : ICommissionImportService
     {
@@ -84,9 +84,9 @@ namespace TM3ClientExtension.Services
         {
             return await _userRepository.GetCommissionDetails();
         }
-        public async Task<List<HistoricalValues>> GetHistoricalValuesData()
+        public async Task<List<HistoricalValues>> GetHistoricalValuesData(int PeriodId)
         {
-            return await _userRepository.GetHistoricalValuesData();
+            return await _userRepository.GetHistoricalValuesData(PeriodId);
         }
 
         public async Task<dynamic> ManulaBonuses(CommissionImportRequest req)

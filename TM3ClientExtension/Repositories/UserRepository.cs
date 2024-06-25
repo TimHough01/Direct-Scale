@@ -16,7 +16,7 @@ namespace TM3ClientExtension.Repositories
     {
         Task<string> GetEmailByID(int sponsorid);
         Task<List<UnreleasedBonusReaponse>> GetCommissionDetails();
-        Task<List<HistoricalValues>> GetHistoricalValuesData();
+        Task<List<HistoricalValues>> GetHistoricalValuesData(int periodId);
 
     }
     public class UserRepository : IUserRepository
@@ -60,12 +60,40 @@ namespace TM3ClientExtension.Repositories
                 return Email.ToList();
             }
         }
-        public async Task<List<HistoricalValues>> GetHistoricalValuesData()
+        public async Task<List<HistoricalValues>> GetHistoricalValuesData(int periodId)
         {
+            var periodName = "";
+            if (periodId == 220)
+            {
+                periodName = "Weekly";
+            }
+            else if (periodId == 243)
+            {
+                periodName = "FourWeek";
+            }
             using (var dbConnection = new SqlConnection(await _dataService.GetClientConnectionString()))
             {
 
-                var sql = @$"";
+                var sql = @$"select  d.recordnumber as AssociateId,
+                            cp.BeginDate as BeginDate,
+                            cp.EndDate as EndDate,
+                            cp.CommitDate as postDate,
+                            ISNULL(cav.Value,0) as SumValue,
+                            d.AssociateType as AssociateType,
+                            CASE cp.PeriodName 
+                            WHEN 'FourWeek' THEN '4Week'
+                            ELSE cp.PeriodName 
+                            END as PeriodName ,
+                            cav.OptionID as 'Key',
+                            rn.Rank as Lastvalue
+                            from CRM_CommissionAssociateValues_COV cav
+                            inner join CRM_CommissionAssociateValues av ON av.AssociateID=cav.AssociateID and av.ComPeriodID=cav.ComPeriodID
+                            INNER JOIN CRM_RANKS rn on rn.RankID = av.HighRank
+                             inner join crm_commissionperiods cp on cp.recordnumber=cav.ComPeriodID
+                            inner join CRM_Distributors d on d.recordnumber=cav.AssociateID
+                            where cp.CommitDate is not null and cp.PeriodName = '{periodName}'
+                            and cav.OptionID in ('BC','RC','R50','R60','R70','R80','R90','R100','R110','R120','R130','R140') and d.recordnumber = 12731
+                            group by d.recordnumber,cp.PeriodName,cav.OptionID,cav.Value,d.AssociateType,cp.BeginDate,cp.EndDate,cp.CommitDate,rn.Rank";
 
                 var Email = await dbConnection.QueryAsync<HistoricalValues>(sql);
 

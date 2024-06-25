@@ -111,7 +111,7 @@ namespace TM3ClientExtension.Controllers
         {
             string[] UserRole = { "suremember-business-consultant", "suremember-retail-customer", "suremember-preferred-customer" };
             var HistoricalValuesKey = new HistoricalValuesKey();
-            var GetAllDsUsers = _commissionImportservice.GetHistoricalValuesData().GetAwaiter().GetResult();
+            var GetAllDsUsers = _commissionImportservice.GetHistoricalValuesData(CompensationPlanId).GetAwaiter().GetResult();
             var GetPeriods = _commissionImportservice.GetPeriodsByCompensationPlanId(CompensationPlanId).GetAwaiter().GetResult();
 
             foreach (var role in UserRole)
@@ -133,21 +133,21 @@ namespace TM3ClientExtension.Controllers
                 foreach (var tm3user in MapTm3UsertoWP)
                 {
                     var GetWPUserID = users.Where(x => tm3user.AssociateId.ToString() == x.meta_data.FirstOrDefault(m => m.key == "tm3-customer-id")?.value.ToString());
+
+                    //remove the time in pillars begin date and end date 
                     var Periods = GetPeriods.Where(x => x.Begin <= tm3user.BeginDate && x.End >= tm3user.EndDate);
 
-                    //UPDATE ACCORDING TO THE DS KEY
-                    var CheckKey = HistoricalValuesKey.KeyDictionary.Where(x => x.Key == HistoricalValuesKey.DsHistoricalKeys.Keys.Select(y=>y).FirstOrDefault());
-
+                    var CheckKey = HistoricalValuesKey.kpis.Where(x => x.Value == tm3user.Key);
 
                     if (GetWPUserID.Count() > 0 && Periods.Count() > 0 && CheckKey.Count() > 0)
                     {
                         var req = new HistoricalValuesRequest
                         {
-                            key = tm3user.Key,
+                            key = CheckKey.FirstOrDefault().Key,
                             periodId = Periods.FirstOrDefault().Id,
                             nodeId = GetWPUserID.FirstOrDefault().id.ToString(),
                             sumValue = tm3user.SumValue,
-                            lastValue = "",
+                            lastValue = tm3user.LastValue,
                             postDate = tm3user.postDate
 
                         };
