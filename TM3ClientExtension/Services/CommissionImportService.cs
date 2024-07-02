@@ -32,6 +32,9 @@ namespace TM3ClientExtension.Services
         Task<dynamic> PostHistoricalData(HistoricalValuesRequest req);
         Task<List<Periods>> GetPeriodsByCompensationPlanId(int compensationPlanId);
         Task<List<HistoricalValues>> GetHistoricalValuesData(int PeriodId);
+        Task<Users> UpdateSponsorDetailsIntoWordpress(int CustomerId, int WPUplineID);
+        Task<List<RewardPoints>> GetRewardPointsData();
+        Task<List<Pendingproductvalue>> GetPendingProductValue();
     }
     public class CommissionImportService : ICommissionImportService
     {
@@ -45,26 +48,57 @@ namespace TM3ClientExtension.Services
         {
             var allUsers = new List<Users>();
             int page = 1;
+            var users = new List<Users>();
             int perPage = 100;
             bool hasMoreUsers = true;
-
-            while (hasMoreUsers)
+            if (UserRole == "")
             {
-                var users = await GetWPUsers(page, perPage, UserRole);
-                if (users.Count > 0)
+                string[] UserRoles = { "suremember-business-consultant", "suremember-retail-customer", "suremember-preferred-customer" };
+                foreach (var item in UserRoles)
                 {
-                    allUsers.AddRange(users);
-                    page++;
-                    if (users.Count < 100)
+                    page = 1;
+                    hasMoreUsers = true;
+                    while (hasMoreUsers)
+                    {
+                        users = await GetWPUsers(page, perPage, item);
+                        if (users.Count > 0)
+                        {
+                            allUsers.AddRange(users);
+                            page++;
+                            if (users.Count < 100)
+                            {
+                                hasMoreUsers = false;
+                            }
+                        }
+                        else
+                        {
+                            hasMoreUsers = false;
+                        }
+                    }
+                }
+            }
+            else
+            {
+                while (hasMoreUsers)
+                {
+                    users = await GetWPUsers(page, perPage, UserRole);
+                    if (users.Count > 0)
+                    {
+                        allUsers.AddRange(users);
+                        page++;
+                        if (users.Count < 100)
+                        {
+                            hasMoreUsers = false;
+                        }
+                    }
+                    else
                     {
                         hasMoreUsers = false;
                     }
                 }
-                else
-                {
-                    hasMoreUsers = false;
-                }
             }
+
+          
             return allUsers;
         }
 
@@ -79,7 +113,6 @@ namespace TM3ClientExtension.Services
                 return users;
             
         }
-       
 
         public async Task<List<UnreleasedBonusReaponse>> GetCommissionDetails()
         {
@@ -155,7 +188,6 @@ namespace TM3ClientExtension.Services
                 periodId = req.periodId,
                 nodeId = req.nodeId,
                 sumValue = req.sumValue,
-                lastValue = req.lastValue,
                 postDate = req.postDate
             };
             var content = new StringContent(
@@ -169,6 +201,41 @@ namespace TM3ClientExtension.Services
             var result = await response.Content.ReadAsStringAsync();
             return result;
 
+        }
+        public async Task<Users> UpdateSponsorDetailsIntoWordpress(int UserId, int WPUplineID)
+        {
+            var client = new HttpClient();
+            var request = new HttpRequestMessage(HttpMethod.Put, $"https://stg-mytm3-317.uw2.rapydapps.cloud/wp-json/wc/v3/customers/{UserId}");
+            request.Headers.Add("Authorization", "Basic Y2tfYWFlNWRmMThjMTFhNDRhZjRhZGNkNzczZTljZjdiYmYzNjBhNjNlZDpjc182NTU1MzgzNWVlMGFlMjgyZTc5Y2NiMTNlNDY0YjJhY2FmNWFjZDFm");
+                    var metaData = new
+                    {
+                        meta_data = new[]
+                        {
+                            new
+                            {
+                                key = "sponsor-id",
+                                value = WPUplineID
+                            }
+                        }
+                    };
+
+            string jsonString = JsonConvert.SerializeObject(metaData);
+
+            var content = new StringContent(jsonString, Encoding.UTF8, "application/json");
+            request.Content = content;
+            var response = await client.SendAsync(request);
+            response.EnsureSuccessStatusCode();
+            var user = JsonConvert.DeserializeObject<Users>(await response.Content.ReadAsStringAsync());
+
+            return user;
+        }
+        public async Task<List<RewardPoints>> GetRewardPointsData()
+        {
+            return  await _userRepository.GetRewardPointDetails();
+        }
+        public async Task<List<Pendingproductvalue>> GetPendingProductValue()
+        {
+            return await _userRepository.GetPendingProductValue();
         }
 
 

@@ -17,6 +17,8 @@ namespace TM3ClientExtension.Repositories
         Task<string> GetEmailByID(int sponsorid);
         Task<List<UnreleasedBonusReaponse>> GetCommissionDetails();
         Task<List<HistoricalValues>> GetHistoricalValuesData(int periodId);
+        Task<List<RewardPoints>> GetRewardPointDetails();
+        Task<List<Pendingproductvalue>> GetPendingProductValue();
 
     }
     public class UserRepository : IUserRepository
@@ -49,10 +51,10 @@ namespace TM3ClientExtension.Repositories
                 
                 var sql = @$"SELECT
 	                    d.recordnumber as nodeId, h.PostDate as date, h.Amount as amount, 
-	                    IIF(LEN(H.Comment) > 0, H.Comment + ' (' + cp.PeriodName + ' ' +FORMAT(cp.BeginDate, 'MM/dd/yyyy') + '-' + FORMAT(cp.EndDate, 'MM/dd/yyyy') + ')', cp.PeriodName) as comment, d.associatetype as associateRole
+	                    h.[group] as comment, d.associatetype as associateRole
                     FROM CRM_CommissionHistory h
 	                    inner join crm_commissionperiods cp on cp.recordnumber=h.ComPeriodID
-	                    inner join CRM_Distributors d on d.recordnumber=h.AssociateID
+	                    inner join CRM_Distributors d on d.recordnumber = h.AssociateID
                     ORDER BY PostDate";
 
                 var Email = await dbConnection.QueryAsync<UnreleasedBonusReaponse>(sql);
@@ -92,12 +94,50 @@ namespace TM3ClientExtension.Repositories
                              inner join crm_commissionperiods cp on cp.recordnumber=cav.ComPeriodID
                             inner join CRM_Distributors d on d.recordnumber=cav.AssociateID
                             where cp.CommitDate is not null and cp.PeriodName = '{periodName}'
-                            and cav.OptionID in ('BC','RC','R50','R60','R70','R80','R90','R100','R110','R120','R130','R140') and d.recordnumber = 12731
+                            and cav.OptionID in ('BC','RC','R50','R60','R70','R80','R90','R100','R110','R120','R130','R140','COMACT','GVKPI') 
                             group by d.recordnumber,cp.PeriodName,cav.OptionID,cav.Value,d.AssociateType,cp.BeginDate,cp.EndDate,cp.CommitDate,rn.Rank";
 
                 var Email = await dbConnection.QueryAsync<HistoricalValues>(sql);
 
                 return Email.ToList();
+            }
+        }
+        public async Task<List<RewardPoints>> GetRewardPointDetails()
+        {
+            using (var dbConnection = new SqlConnection(await _dataService.GetClientConnectionString()))
+            {
+                var sql = @$"select Distinct d.recordnumber as AssociateID,
+                            d.BackofficeID as BackofficeID,
+                            ISNULL(d.LegalFirstName,d.FirstName) as FirstName,
+                            ISNULL(d.LegalLastName,d.LastName) as LastName,
+                            ISNULL(d.EmailAddress,'') as EmailAddress,
+                            SUM(ISNULL(rp.RemainingBalance,0)) as RewardPoint
+                            from CRM_Distributors d
+                            JOIN CRM_RewardPoints rp on rp.associateID = d.recordnumber
+                            group by d.recordnumber,d.BackofficeID,d.LegalFirstName,d.FirstName,d.LegalLastName,d.LastName,d.EmailAddress";
+
+                var RewardPointData = await dbConnection.QueryAsync<RewardPoints>(sql);
+
+                return RewardPointData.ToList();
+            }
+        }
+        public async Task<List<Pendingproductvalue>> GetPendingProductValue()
+        {
+            using (var dbConnection = new SqlConnection(await _dataService.GetClientConnectionString()))
+            {
+                var sql = @$"select d.recordnumber as AssociateID,
+                            d.BackofficeID as BackofficeID,
+                            ISNULL(d.LegalFirstName,d.FirstName) as FirstName,
+                            ISNULL(d.LegalLastName, d.LastName) as LastName,
+                            ISNULL(d.EmailAddress,'') as EmailAddress,
+                            ISNULL((select value from CRM_Stats_StatValues where associateid = d.recordnumber and Stat = 'PPCKPI' and PeriodKey like '%fourweek%'),0) as PPCKPI
+                            from CRM_Distributors d
+                            JOIN CRM_Stats_StatValues st on st.associateid = d.recordnumber
+                            group by d.recordnumber,d.BackofficeID,d.LegalFirstName,d.FirstName,d.LegalLastName,d.LastName,d.EmailAddress";
+
+                var Pendingproductvalues = await dbConnection.QueryAsync<Pendingproductvalue>(sql);
+
+                return Pendingproductvalues.ToList();
             }
         }
     }

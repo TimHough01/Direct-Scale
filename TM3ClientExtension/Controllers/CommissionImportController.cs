@@ -100,8 +100,8 @@ namespace TM3ClientExtension.Controllers
                 amount = 10
 
             };
-           var response =  _commissionImportservice.ManulaBonuses(req).Result; 
-            
+            var response = _commissionImportservice.ManulaBonuses(req).Result;
+
             return Ok(response);
 
         }
@@ -134,9 +134,7 @@ namespace TM3ClientExtension.Controllers
                 {
                     var GetWPUserID = users.Where(x => tm3user.AssociateId.ToString() == x.meta_data.FirstOrDefault(m => m.key == "tm3-customer-id")?.value.ToString());
 
-                    //remove the time in pillars begin date and e
                     var Periods = GetPeriods.Where(x => x.Begin.Date <= tm3user.BeginDate.Date && x.End.Date >= tm3user.EndDate.Date);
-
 
                     var CheckKey = HistoricalValuesKey.kpis.Where(x => x.Value == tm3user.Key);
 
@@ -149,7 +147,6 @@ namespace TM3ClientExtension.Controllers
                             periodId = Periods.FirstOrDefault().Id,
                             nodeId = GetWPUserID.FirstOrDefault().id.ToString(),
                             sumValue = tm3user.SumValue,
-                            lastValue = tm3user.LastValue,
                             postDate = tm3user.postDate
 
                         };
@@ -162,25 +159,56 @@ namespace TM3ClientExtension.Controllers
             return Ok();
 
         }
-        //[HttpGet]
-        //[Route("ChangeSponsorID")]
-        //public IActionResult ChangeSponsorIDs()
-        //{
-        //    var users = _commissionImportservice.GetWPUsers("").Result;
-        //    foreach (var user in users)
-        //    {
-        //      var sponsorID  = user.meta_data.Where(x => x.key == "sponsor-id").Select(x => x.value).FirstOrDefault();
+        [HttpGet]
+        [Route("ChangeSponsorID")]
+        public IActionResult ChangeSponsorIDs()
+        {
+                var users = _commissionImportservice.GetAllWPUsers("").GetAwaiter().GetResult();
+                var MapTm3UsertoWP = new List<HistoricalValues>();
+                foreach (var user in users)
+                {
+                    var GetDSUserID = user.meta_data.FirstOrDefault(m => m.key == "sponsor-id")?.value.ToString();
+                    var GetWPUseridByCustomField = users.Where(x => x.meta_data.Where(m => m.key == "tm3-customer-id").FirstOrDefault()?.value.ToString() == "14528").FirstOrDefault();
+                    if (GetWPUseridByCustomField != null)
+                    {
+                        var updatedUser =  _commissionImportservice.UpdateSponsorDetailsIntoWordpress(user.id, GetWPUseridByCustomField.id).GetAwaiter().GetResult();
+                    }
 
-        //        if (sponsorID != null && int.TryParse(sponsorID.ToString(), out int sponsorId))
-        //        {
-        //            var getSponsorDetailsInDS = _commissionImportservice.GetEmailByID(sponsorId).Result;
+                }
 
-        //        }
+                return Ok("Success");
+        }
+        [HttpGet]
+        [Route("GetRewardPointsDetails")]
+        public IActionResult GetRewardPointsDetails()
+        {
+            try
+            {
+                var RewardPointData = _commissionImportservice.GetRewardPointsData().GetAwaiter().GetResult();
 
-        //    }
+                return Ok(RewardPointData);
+            }
+            catch (Exception)
+            {
+                throw;
+            }
 
-        //    return Ok(users);
-        //}
+        }
+        [HttpGet]
+        [Route("GetPendingProductCreditKpiValues")]
+        public IActionResult GetPendingProductCreditKpiValues(string Period)
+        {
+            try
+            {
+                var RewardPointData = _commissionImportservice.GetPendingProductValue().GetAwaiter().GetResult();
 
+                return Ok(RewardPointData);
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+
+        }
     }
 }

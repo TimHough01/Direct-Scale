@@ -18,7 +18,9 @@ namespace TM3ClientExtension.Models
             { "R110cp", "R110" },
             { "R120cp", "R120" },
             { "R130cp", "R130" },
-            { "R140cp", "R140" }            
+            { "R140cp", "R140" },
+            { "CA4w", "ComAct"},
+            {"GV4W","GVKPI" }
         };
     }
 
