@@ -178,7 +178,7 @@ namespace TM3ClientExtension.Controllers
 
                 return Ok("Success");
         }
-        [HttpGet]
+        [HttpPost]
         [Route("GetRewardPointsDetails")]
         public IActionResult GetRewardPointsDetails()
         {
