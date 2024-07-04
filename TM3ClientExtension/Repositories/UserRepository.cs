@@ -19,6 +19,7 @@ namespace TM3ClientExtension.Repositories
         Task<List<HistoricalValues>> GetHistoricalValuesData(int periodId);
         Task<List<RewardPoints>> GetRewardPointDetails();
         Task<List<Pendingproductvalue>> GetPendingProductValue();
+        Task<List<GetHistoricalManualBonusdata>> GetHistoricalManualBonus();
 
     }
     public class UserRepository : IUserRepository
@@ -136,6 +137,29 @@ namespace TM3ClientExtension.Repositories
                             group by d.recordnumber,d.BackofficeID,d.LegalFirstName,d.FirstName,d.LegalLastName,d.LastName,d.EmailAddress";
 
                 var Pendingproductvalues = await dbConnection.QueryAsync<Pendingproductvalue>(sql);
+
+                return Pendingproductvalues.ToList();
+            }
+        }
+        public async Task<List<GetHistoricalManualBonusdata>> GetHistoricalManualBonus()
+        {
+            using (var dbConnection = new SqlConnection(await _dataService.GetClientConnectionString()))
+            {
+                var sql = @$"SELECT 
+                            d.recordnumber as nodeId,
+                            cp.BeginDate as BeginDate, 
+                            cp.enddate as EndDate, 
+                            h.Amount as amount, 
+                             CONCAT(h.[group], '_', h.recordnumber) as comment, 
+                            d.associatetype as associateRole
+                        FROM 
+                            CRM_CommissionHistory h
+                            INNER JOIN crm_commissionperiods cp ON cp.recordnumber = h.ComPeriodID
+                            INNER JOIN CRM_Distributors d ON d.recordnumber = h.AssociateID
+                        ORDER BY 
+                            PostDate;";
+
+                var Pendingproductvalues = await dbConnection.QueryAsync<GetHistoricalManualBonusdata>(sql);
 
                 return Pendingproductvalues.ToList();
             }

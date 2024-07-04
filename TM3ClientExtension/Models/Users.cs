@@ -9,8 +9,8 @@ namespace TM3ClientExtension.Models
         public int id { get; set; }
         public DateTime? date_created { get; set; } = DateTime.Now;
         public DateTime? date_created_gmt { get; set; }
-        public DateTime date_modified { get; set; }
-        public DateTime date_modified_gmt { get; set; }
+        public DateTime? date_modified { get; set; }
+        public DateTime? date_modified_gmt { get; set; }
         public string email { get; set; }
         public string first_name { get; set; }
         public string last_name { get; set; }

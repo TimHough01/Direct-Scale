@@ -35,6 +35,8 @@ namespace TM3ClientExtension.Services
         Task<Users> UpdateSponsorDetailsIntoWordpress(int CustomerId, int WPUplineID);
         Task<List<RewardPoints>> GetRewardPointsData();
         Task<List<Pendingproductvalue>> GetPendingProductValue();
+        Task<HistoricalBonusResponse> PostHistoricalManualBonus(HistoricalBonusRequest req);
+        Task<List<GetHistoricalManualBonusdata>> GetHistoricalManualBonus();
     }
     public class CommissionImportService : ICommissionImportService
     {
@@ -236,6 +238,36 @@ namespace TM3ClientExtension.Services
         public async Task<List<Pendingproductvalue>> GetPendingProductValue()
         {
             return await _userRepository.GetPendingProductValue();
+        }
+        public async Task<HistoricalBonusResponse> PostHistoricalManualBonus(HistoricalBonusRequest req)
+        {
+            var client = new HttpClient();
+            var request = new HttpRequestMessage(HttpMethod.Post, "https://api.pillarshub.com/api/v1/HistoricalBonuses");
+            request.Headers.Add("Authorization", "Ufgorzw1hP6SPVkr1oP9ZiNWNU1FnNivylxcPONgkWp9");
+            request.Headers.Add("accept", "application/json");
+            var contentJson = new
+            {
+                bonusId = req.BonusId,
+                periodId = req.PeriodId,
+                nodeId = req.NodeId,
+                amount = req.Amount
+            };
+            var content = new StringContent(
+                 JsonConvert.SerializeObject(contentJson),
+                 Encoding.UTF8,
+                 "application/+json"
+             );
+            request.Content = content;
+            var response = await client.SendAsync(request);
+            response.EnsureSuccessStatusCode();
+
+            var Response = JsonConvert.DeserializeObject<HistoricalBonusResponse>(await response.Content.ReadAsStringAsync());
+
+            return Response;
+        }
+        public async Task<List<GetHistoricalManualBonusdata>> GetHistoricalManualBonus()
+        {
+            return await _userRepository.GetHistoricalManualBonus();
         }
 
 

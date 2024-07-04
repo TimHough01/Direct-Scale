@@ -33,4 +33,21 @@ namespace TM3ClientExtension.Models
         public string PeriodName { get; set; }
 
     }
+
+    public class HistoricalBonusRequest
+    {
+        public string BonusId { get; set; }
+        public int PeriodId { get; set; }
+        public string NodeId { get; set; }
+        public double Amount { get; set; }
+    }
+    public class HistoricalBonusResponse
+    {
+        public int Id { get; set; }
+        public string BonusId { get; set; }
+        public int PeriodId { get; set; }
+        public string NodeId { get; set; }
+        public double Amount { get; set; }
+        public DateTime PostDate { get; set; }
+    }
 }

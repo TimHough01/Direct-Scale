@@ -89,20 +89,56 @@ namespace TM3ClientExtension.Controllers
             return Ok();
         }
         [HttpPost]
-        [Route("ManualBonusTest")]
-        public IActionResult ManualBonusTest()
+        [Route("HistoricalBonuses")]
+        public IActionResult HistoricalBonuses()
         {
-            var req = new CommissionImportRequest
+            var GetAllDsUsers = _commissionImportservice.GetHistoricalManualBonus().GetAwaiter().GetResult();         
+            string[] UserRole = { "suremember-business-consultant", "suremember-retail-customer", "suremember-preferred-customer" };
+            int[] planId = { 220,243, 244 };
+            foreach (var id in planId)
             {
-                Date = DateTime.Now,
-                NodeIds = "806",
-                comment = "test",
-                amount = 10
+                var GetPeriods = _commissionImportservice.GetPeriodsByCompensationPlanId(id).GetAwaiter().GetResult();
+                foreach (var role in UserRole)
+                {
+                    var users = _commissionImportservice.GetAllWPUsers(role).GetAwaiter().GetResult();
+                    var MapTm3UsertoWP = new List<GetHistoricalManualBonusdata>();
+                    if (role == "suremember-business-consultant")
+                    {
+                        MapTm3UsertoWP = GetAllDsUsers.Where(x => x.AssociateRole == 1).ToList();
+                    }
+                    else if (role == "suremember-retail-customer")
+                    {
+                        MapTm3UsertoWP = GetAllDsUsers.Where(x => x.AssociateRole == 2).ToList();
+                    }
+                    else if (role == "suremember-preferred-customer")
+                    {
+                        MapTm3UsertoWP = GetAllDsUsers.Where(x => x.AssociateRole == 3 || x.AssociateRole == 4).ToList();
+                    }
+                    foreach (var tm3user in MapTm3UsertoWP)
+                    {
+                        var GetWPUserID = users.Where(x => tm3user.NodeId.ToString() == x.meta_data.FirstOrDefault(m => m.key == "tm3-customer-id")?.value.ToString());
 
-            };
-            var response = _commissionImportservice.ManulaBonuses(req).Result;
+                        var Periods = GetPeriods.Where(x => x.Begin.Date <= tm3user.BeginDate.Date && x.End.Date >= tm3user.EndDate.Date);
+                        if (GetWPUserID.Count() > 0 && Periods.Count() > 0)
+                        {
+                            var req = new HistoricalBonusRequest
+                            {
+                                BonusId = tm3user.Comment,
+                                PeriodId = Periods.FirstOrDefault().Id,
+                                NodeId = GetWPUserID.FirstOrDefault().id.ToString(),
+                                Amount = tm3user.Amount
+                            };
+                            var response = _commissionImportservice.PostHistoricalManualBonus(req).GetAwaiter().GetResult();
+                        }
+                    }
 
-            return Ok(response);
+
+                }
+            }
+
+           
+            return Ok();
+
 
         }
         [HttpPost]
@@ -168,7 +204,7 @@ namespace TM3ClientExtension.Controllers
                 foreach (var user in users)
                 {
                     var GetDSUserID = user.meta_data.FirstOrDefault(m => m.key == "sponsor-id")?.value.ToString();
-                    var GetWPUseridByCustomField = users.Where(x => x.meta_data.Where(m => m.key == "tm3-customer-id").FirstOrDefault()?.value.ToString() == "14528").FirstOrDefault();
+                    var GetWPUseridByCustomField = users.Where(x => x.meta_data.Where(m => m.key == "tm3-customer-id").FirstOrDefault()?.value.ToString() == GetDSUserID).FirstOrDefault();
                     if (GetWPUseridByCustomField != null)
                     {
                         var updatedUser =  _commissionImportservice.UpdateSponsorDetailsIntoWordpress(user.id, GetWPUseridByCustomField.id).GetAwaiter().GetResult();
