@@ -244,7 +244,24 @@ namespace TM3ClientExtension.Controllers
             {
                 throw;
             }
+        }
 
+        [HttpGet]
+        [Route("ChangeSponsorIDsForSendItAcadamy")]
+        public IActionResult ChangeSponsorIDsForSendItAcadamy()
+        {
+            var users = _commissionImportservice.GetAllWPUsersSendItAcadamy("").GetAwaiter().GetResult();
+            var MapTm3UsertoWP = new List<HistoricalValues>();
+            foreach (var user in users)
+            {
+                var GetDSUserID = user.meta_data.FirstOrDefault(m => m.key == "uplineId")?.value.ToString();
+                var GetWPUseridByCustomField = users.Where(x => x.meta_data.Where(m => m.key == "SendItAcademyID").FirstOrDefault()?.value.ToString() == GetDSUserID).FirstOrDefault();
+                if (GetWPUseridByCustomField != null)
+                {
+                    var updatedUser = _commissionImportservice.UpdateSponsorDetailsIntoWordpressForSendItAcadamy(user.id, GetWPUseridByCustomField.id).GetAwaiter().GetResult();
+                }
+            }
+            return Ok("Success");
         }
     }
 }

@@ -23,6 +23,7 @@ namespace TM3ClientExtension.Services
     public interface ICommissionImportService
     {
         Task<List<Users>> GetAllWPUsers(string UserRole);
+        Task<List<Users>> GetAllWPUsersSendItAcadamy(string UserRole);
         //Task<List<UnreleasedBonusReaponse>> GetBonuses(CommissionBonuseRequest req);
         Task<dynamic> ManulaBonuses(CommissionImportRequest req);
         //Task<dynamic> updateuserImage(int userID);
@@ -33,6 +34,7 @@ namespace TM3ClientExtension.Services
         Task<List<Periods>> GetPeriodsByCompensationPlanId(int compensationPlanId);
         Task<List<HistoricalValues>> GetHistoricalValuesData(int PeriodId);
         Task<Users> UpdateSponsorDetailsIntoWordpress(int CustomerId, int WPUplineID);
+        Task<Users> UpdateSponsorDetailsIntoWordpressForSendItAcadamy(int CustomerId, int WPUplineID);
         Task<List<RewardPoints>> GetRewardPointsData();
         Task<List<Pendingproductvalue>> GetPendingProductValue();
         Task<HistoricalBonusResponse> PostHistoricalManualBonus(HistoricalBonusRequest req);
@@ -56,6 +58,7 @@ namespace TM3ClientExtension.Services
             if (UserRole == "")
             {
                 string[] UserRoles = { "suremember-business-consultant", "suremember-retail-customer", "suremember-preferred-customer" };
+
                 foreach (var item in UserRoles)
                 {
                     page = 1;
@@ -107,13 +110,85 @@ namespace TM3ClientExtension.Services
         public async Task<List<Users>> GetWPUsers(int page, int per_page ,string UserRole )
         {           
                 var client = new HttpClient();
-                var request = new HttpRequestMessage(HttpMethod.Get, $"https://stg-mytm3-317.uw2.rapydapps.cloud/wp-json/wc/v3/customers?page={page}&per_page={per_page}&role={UserRole}");
-                request.Headers.Add("Authorization", "Basic Y2tfYWFlNWRmMThjMTFhNDRhZjRhZGNkNzczZTljZjdiYmYzNjBhNjNlZDpjc182NTU1MzgzNWVlMGFlMjgyZTc5Y2NiMTNlNDY0YjJhY2FmNWFjZDFm");
-                var response = await client.SendAsync(request);
+            var request = new HttpRequestMessage(HttpMethod.Get, $"https://stg-mytm3-317.uw2.rapydapps.cloud/wp-json/wc/v3/customers?page={page}&per_page={per_page}&role={UserRole}");
+            request.Headers.Add("Authorization", "Basic Y2tfYWFlNWRmMThjMTFhNDRhZjRhZGNkNzczZTljZjdiYmYzNjBhNjNlZDpjc182NTU1MzgzNWVlMGFlMjgyZTc5Y2NiMTNlNDY0YjJhY2FmNWFjZDFm");
+
+            var response = await client.SendAsync(request);
                 response.EnsureSuccessStatusCode();
                 var users = JsonConvert.DeserializeObject<List<Users>>(await response.Content.ReadAsStringAsync());
                 return users;
             
+        }
+
+        public async Task<List<Users>> GetAllWPUsersSendItAcadamy(string UserRole)
+        {
+            var allUsers = new List<Users>();
+            int page = 1;
+            var users = new List<Users>();
+            int perPage = 100;
+            bool hasMoreUsers = true;
+            if (UserRole == "")
+            {
+                string[] UserRoles = { "subscriber", "customer" };
+                foreach (var item in UserRoles)
+                {
+                    page = 1;
+                    hasMoreUsers = true;
+                    while (hasMoreUsers)
+                    {
+                        users = await GetWPUsersSendItAcadamy(page, perPage, item);
+                        if (users.Count > 0)
+                        {
+                            allUsers.AddRange(users);
+                            page++;
+                            if (users.Count < 100)
+                            {
+                                hasMoreUsers = false;
+                            }
+                        }
+                        else
+                        {
+                            hasMoreUsers = false;
+                        }
+                    }
+                }
+            }
+            else
+            {
+                while (hasMoreUsers)
+                {
+                    users = await GetWPUsersSendItAcadamy(page, perPage, UserRole);
+                    if (users.Count > 0)
+                    {
+                        allUsers.AddRange(users);
+                        page++;
+                        if (users.Count < 100)
+                        {
+                            hasMoreUsers = false;
+                        }
+                    }
+                    else
+                    {
+                        hasMoreUsers = false;
+                    }
+                }
+            }
+
+
+            return allUsers;
+        }
+
+        public async Task<List<Users>> GetWPUsersSendItAcadamy(int page, int per_page, string UserRole)
+        {
+            var client = new HttpClient();
+
+            var request = new HttpRequestMessage(HttpMethod.Get, $"https://ringaln.com/wp-json/wc/v3/customers?page={page}&per_page={per_page}&role={UserRole}&consumer_key=ck_9298e7ec90dc2600a3bf7e70f95a6bd0c5bdbcd1&consumer_secret=cs_12d1192af74df8db1e154a2e3905e5d54c3f8704");
+
+            var response = await client.SendAsync(request);
+            response.EnsureSuccessStatusCode();
+            var users = JsonConvert.DeserializeObject<List<Users>>(await response.Content.ReadAsStringAsync());
+            return users;
+
         }
 
         public async Task<List<UnreleasedBonusReaponse>> GetCommissionDetails()
@@ -231,6 +306,35 @@ namespace TM3ClientExtension.Services
 
             return user;
         }
+
+        public async Task<Users> UpdateSponsorDetailsIntoWordpressForSendItAcadamy(int UserId, int WPUplineID)
+        {
+            var client = new HttpClient();
+            var request = new HttpRequestMessage(HttpMethod.Put, $"https://ringaln.com/wp-json/wc/v3/customers?{UserId}&consumer_key=ck_9298e7ec90dc2600a3bf7e70f95a6bd0c5bdbcd1&consumer_secret=cs_12d1192af74df8db1e154a2e3905e5d54c3f8704");
+
+            var metaData = new
+            {
+                meta_data = new[]
+                {
+                            new
+                            {
+                                key = "uplineId",
+                                value = WPUplineID
+                            }
+                        }
+            };
+
+            string jsonString = JsonConvert.SerializeObject(metaData);
+
+            var content = new StringContent(jsonString, Encoding.UTF8, "application/json");
+            request.Content = content;
+            var response = await client.SendAsync(request);
+            response.EnsureSuccessStatusCode();
+            var user = JsonConvert.DeserializeObject<Users>(await response.Content.ReadAsStringAsync());
+
+            return user;
+        }
+
         public async Task<List<RewardPoints>> GetRewardPointsData()
         {
             return  await _userRepository.GetRewardPointDetails();
