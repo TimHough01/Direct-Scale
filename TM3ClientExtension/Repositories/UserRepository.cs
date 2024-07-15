@@ -1,6 +1,7 @@
 ﻿using Dapper;
 using DirectScale.Disco.Extension;
 using DirectScale.Disco.Extension.Services;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Data.SqlClient;
@@ -9,6 +10,8 @@ using System.Threading.Tasks;
 using TM3ClientExtension.Models;
 using WebExtension.Helper;
 using WebExtension.Models.GenericReports;
+using MySql.Data.MySqlClient;
+using static Dapper.SqlMapper;
 
 namespace TM3ClientExtension.Repositories
 {
@@ -20,6 +23,8 @@ namespace TM3ClientExtension.Repositories
         Task<List<RewardPoints>> GetRewardPointDetails();
         Task<List<Pendingproductvalue>> GetPendingProductValue();
         Task<List<GetHistoricalManualBonusdata>> GetHistoricalManualBonus();
+        Task<List<WPUserTokens>> GetWPUserTokensData();
+        Task<bool> SaveWPTokenDetails(WPUserTokens req);
 
     }
     public class UserRepository : IUserRepository
@@ -162,6 +167,117 @@ namespace TM3ClientExtension.Repositories
                 var Pendingproductvalues = await dbConnection.QueryAsync<GetHistoricalManualBonusdata>(sql);
 
                 return Pendingproductvalues.ToList();
+            }
+        }
+        public async Task<List<WPUserTokens>> GetWPUserTokensData()
+        {
+            using (var dbConnection = new SqlConnection(await _dataService.GetClientConnectionString()))
+            {
+                var sql = @$";WITH RankedPayments AS (
+                                SELECT distinct
+                                    'nmi' AS gateway_id,
+                                    p.ExternalID AS token,
+                                    p.DistributorID AS user_id,
+                                    'CC' AS type,
+                                    ROW_NUMBER() OVER (PARTITION BY p.DistributorID ORDER BY p.DistributorID) AS rn,
+                                    COUNT(*) OVER (PARTITION BY p.DistributorID) AS user_count
+                                FROM 
+                                    CRM_Payments p 		
+		                            where p.ExternalID is not null and p.firstsix is not null
+                            )
+                            SELECT distinct
+                                gateway_id,
+                                token,
+                                user_id,
+                                type,
+                                CASE 
+                                    WHEN user_count > 1 AND rn = 1 THEN 1
+                                    ELSE 0
+                                END AS is_default
+                            FROM 
+                                RankedPayments;";
+
+                var Pendingproductvalues = await dbConnection.QueryAsync<WPUserTokens>(sql);
+
+                return Pendingproductvalues.ToList();
+            }
+        }
+        //public async Task<bool> SaveWPTokenDetails(WPUserTokens req)
+        //{
+        //    try
+        //    {
+        //        using (var dbConnection = new SqlConnection(await _dataService.GetClientConnectionString()))
+        //        {
+        //            var parameters = new
+        //            {
+        //                gateway_id = req.gateway_id,
+        //                token = req.token,
+        //                user_id = req.user_id,
+        //                type = req.type,
+        //                is_default = req.is_default
+        //            };
+        //            var sql = @$"IF NOT EXISTS (
+        //                        SELECT * 
+        //                        FROM INFORMATION_SCHEMA.TABLES 
+        //                        WHERE TABLE_SCHEMA = 'Client' 
+        //                        AND TABLE_NAME = 'WPTokensDetails'
+        //                    )
+        //                    BEGIN
+        //                        CREATE TABLE Client.WPTokensDetails (
+        //                            gateway_id NVARCHAR(255),
+        //                            token NVARCHAR(max),
+        //                            user_id NVARCHAR(255),
+        //                            type NVARCHAR(255),
+        //                            is_default BIT
+        //                        );
+    
+        //                        INSERT INTO Client.WPTokensDetails (gateway_id, token, user_id, type, is_default)
+        //                        VALUES (@gateway_id, @token, @user_id, @type, @is_default);
+        //                    END
+        //                    ELSE
+        //                    BEGIN
+        //                        INSERT INTO Client.WPTokensDetails (gateway_id, token, user_id, type, is_default)
+        //                        VALUES (@gateway_id, @token, @user_id, @type, @is_default);
+        //                    END";
+
+        //            var Pendingproductvalues = dbConnection.Execute(sql, parameters);
+
+        //            return true;
+        //        }
+        //    }
+        //    catch (Exception)
+        //    {
+
+        //        return false;
+        //    }
+        //}
+        public async Task<bool> SaveWPTokenDetails(WPUserTokens req)
+        {
+            string connectionString = "Server=stg-mytm3-317.uw2.rapydapps.cloud;Port=8443;Database=wp_1222101;User ID=user-3445075;Password=ekOHaF1bI4;SslMode=Preferred;";
+
+            try
+            {
+                using (MySqlConnection conn = new MySqlConnection(connectionString))
+                {
+                    var parameters = new
+                    {
+                        gateway_id = req.gateway_id,
+                        token = req.token,
+                        user_id = req.user_id,
+                        type = req.type,
+                        is_default = req.is_default
+                    };
+                    var sql = @$"INSERT INTO wp_woocommerce_payment_tokens (gateway_id, token, user_id, type, is_default) VALUES (@gateway_id, @token, @user_id, @type, @is_default)";
+
+                    var Pendingproductvalues = conn.Execute(sql, parameters);
+
+                    return true;
+                }
+            }
+            catch (Exception ex)
+            {
+
+                return false;
             }
         }
     }

@@ -39,6 +39,8 @@ namespace TM3ClientExtension.Services
         Task<List<Pendingproductvalue>> GetPendingProductValue();
         Task<HistoricalBonusResponse> PostHistoricalManualBonus(HistoricalBonusRequest req);
         Task<List<GetHistoricalManualBonusdata>> GetHistoricalManualBonus();
+        Task<List<WPUserTokens>> GetWPUserTokensData();
+        Task<bool> SaveWPTokenDetails(WPUserTokens req);
     }
     public class CommissionImportService : ICommissionImportService
     {
@@ -310,7 +312,8 @@ namespace TM3ClientExtension.Services
         public async Task<Users> UpdateSponsorDetailsIntoWordpressForSendItAcadamy(int UserId, int WPUplineID)
         {
             var client = new HttpClient();
-            var request = new HttpRequestMessage(HttpMethod.Put, $"https://ringaln.com/wp-json/wc/v3/customers?{UserId}&consumer_key=ck_9298e7ec90dc2600a3bf7e70f95a6bd0c5bdbcd1&consumer_secret=cs_12d1192af74df8db1e154a2e3905e5d54c3f8704");
+            var request = new HttpRequestMessage(HttpMethod.Put, $"https://ringaln.com/wp-json/wc/v3/customers/{UserId}");
+            request.Headers.Add("Authorization", "Basic Z29yYXZAY2xvdmVyaXRzZXJ2aWNlcy5jb206YnAwOGdmVjFaMEYhRnZAeTU5NipxMlFC");
 
             var metaData = new
             {
@@ -374,6 +377,14 @@ namespace TM3ClientExtension.Services
             return await _userRepository.GetHistoricalManualBonus();
         }
 
+        public async Task<List<WPUserTokens>> GetWPUserTokensData()
+        {
+            return await _userRepository.GetWPUserTokensData();
+        }
+        public async Task<bool> SaveWPTokenDetails(WPUserTokens req)
+        {
+            return await _userRepository.SaveWPTokenDetails(req);
+        }
 
 
     }
