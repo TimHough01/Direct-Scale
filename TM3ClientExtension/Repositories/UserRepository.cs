@@ -12,6 +12,7 @@ using WebExtension.Helper;
 using WebExtension.Models.GenericReports;
 using MySql.Data.MySqlClient;
 using static Dapper.SqlMapper;
+using Org.BouncyCastle.Ocsp;
 
 namespace TM3ClientExtension.Repositories
 {
@@ -25,6 +26,9 @@ namespace TM3ClientExtension.Repositories
         Task<List<GetHistoricalManualBonusdata>> GetHistoricalManualBonus();
         Task<List<WPUserTokens>> GetWPUserTokensData();
         Task<bool> SaveWPTokenDetails(WPUserTokens req);
+        Task<List<AutoshipCardDetails>> GetUserCardDetails();
+        Task<int> GetAssociateByEmail(string email);
+        Task<int> UpdateDefaultCardForAutoship(bool isdefault, string token);
 
     }
     public class UserRepository : IUserRepository
@@ -169,33 +173,44 @@ namespace TM3ClientExtension.Repositories
                 return Pendingproductvalues.ToList();
             }
         }
+        //public async Task<List<WPUserTokens>> GetWPUserTokensData()
+        //{
+        //    using (var dbConnection = new SqlConnection(await _dataService.GetClientConnectionString()))
+        //    {
+        //        var sql = @$";WITH RankedPayments AS (
+        //                        SELECT distinct
+        //                            'nmi' AS gateway_id,
+        //                            p.ExternalID AS token,
+        //                            p.DistributorID AS user_id,
+        //                            'CC' AS type,
+        //                            ROW_NUMBER() OVER (PARTITION BY p.DistributorID ORDER BY p.DistributorID) AS rn,
+        //                            COUNT(*) OVER (PARTITION BY p.DistributorID) AS user_count
+        //                        FROM 
+        //                            CRM_Payments p 		
+		      //                      where p.ExternalID is not null and p.firstsix is not null
+        //                    )
+        //                    SELECT distinct
+        //                        gateway_id,
+        //                        token,
+        //                        user_id,
+        //                        type,
+        //                        CASE 
+        //                            WHEN user_count > 1 AND rn = 1 THEN 1
+        //                            ELSE 0
+        //                        END AS is_default
+        //                    FROM 
+        //                        RankedPayments;";
+
+        //        var Pendingproductvalues = await dbConnection.QueryAsync<WPUserTokens>(sql);
+
+        //        return Pendingproductvalues.ToList();
+        //    }
+        //}
         public async Task<List<WPUserTokens>> GetWPUserTokensData()
         {
             using (var dbConnection = new SqlConnection(await _dataService.GetClientConnectionString()))
             {
-                var sql = @$";WITH RankedPayments AS (
-                                SELECT distinct
-                                    'nmi' AS gateway_id,
-                                    p.ExternalID AS token,
-                                    p.DistributorID AS user_id,
-                                    'CC' AS type,
-                                    ROW_NUMBER() OVER (PARTITION BY p.DistributorID ORDER BY p.DistributorID) AS rn,
-                                    COUNT(*) OVER (PARTITION BY p.DistributorID) AS user_count
-                                FROM 
-                                    CRM_Payments p 		
-		                            where p.ExternalID is not null and p.firstsix is not null
-                            )
-                            SELECT distinct
-                                gateway_id,
-                                token,
-                                user_id,
-                                type,
-                                CASE 
-                                    WHEN user_count > 1 AND rn = 1 THEN 1
-                                    ELSE 0
-                                END AS is_default
-                            FROM 
-                                RankedPayments;";
+                var sql = @$"select * from Client.WPTokensDetails";
 
                 var Pendingproductvalues = await dbConnection.QueryAsync<WPUserTokens>(sql);
 
@@ -230,7 +245,7 @@ namespace TM3ClientExtension.Repositories
         //                            type NVARCHAR(255),
         //                            is_default BIT
         //                        );
-    
+
         //                        INSERT INTO Client.WPTokensDetails (gateway_id, token, user_id, type, is_default)
         //                        VALUES (@gateway_id, @token, @user_id, @type, @is_default);
         //                    END
@@ -253,12 +268,14 @@ namespace TM3ClientExtension.Repositories
         //}
         public async Task<bool> SaveWPTokenDetails(WPUserTokens req)
         {
-            string connectionString = "Server=stg-mytm3-317.uw2.rapydapps.cloud;Port=8443;Database=wp_1222101;User ID=user-3445075;Password=ekOHaF1bI4;SslMode=Preferred;";
+            string connectionString = "Server=stg-mytm3-317.uw2.rapydapps.cloud;Port=8443;Database=wp_1222101;User ID=user-3445075;Password=ekOHaF1bI4;SslMode=Preferred;Connection Timeout=30;";
 
             try
             {
                 using (MySqlConnection conn = new MySqlConnection(connectionString))
                 {
+                    await conn.OpenAsync(); // Ensure the connection is opened asynchronously
+
                     var parameters = new
                     {
                         gateway_id = req.gateway_id,
@@ -269,15 +286,77 @@ namespace TM3ClientExtension.Repositories
                     };
                     var sql = @$"INSERT INTO wp_woocommerce_payment_tokens (gateway_id, token, user_id, type, is_default) VALUES (@gateway_id, @token, @user_id, @type, @is_default)";
 
-                    var Pendingproductvalues = conn.Execute(sql, parameters);
+                    var pendingProductValues = await conn.ExecuteAsync(sql, parameters);
 
-                    return true;
+                    return pendingProductValues > 0;
                 }
             }
             catch (Exception ex)
             {
-
+                // Log exception details for further investigation
+                Console.WriteLine($"An error occurred: {ex.Message}");
                 return false;
+            }
+        }
+        public async Task<List<AutoshipCardDetails>> GetUserCardDetails()
+        {
+            try
+            {
+                using (var dbConnection = new SqlConnection(await _dataService.GetClientConnectionString()))
+                {
+                    var sql = @$"select user_id as UserId, first_name as FirstName,last_name as LastName,card_number_masked as CardNumberMasked, card_expiry_month as CardExpiryMonth,card_expiry_year as CardExpiryYear, nmi_customer_id as NmiCustomerId, card_last4 as CardLast4,card_type as CardType from [Client].[WordPress_Tokens]";
+
+                    var pendingProductValues = await dbConnection.QueryAsync<AutoshipCardDetails>(sql);
+
+                    return pendingProductValues.ToList();
+                }
+            }
+            catch (Exception ex)
+            {
+                return new List<AutoshipCardDetails>();
+            }
+        }
+        public async Task<int> GetAssociateByEmail(string email)
+        {
+            try
+            {
+                using (var dbConnection = new SqlConnection(await _dataService.GetClientConnectionString()))
+                {
+                    var sql = @$"select recordnumber as associateId from CRM_Distributors where EmailAddress = '{email}'";
+
+                    var pendingProductValues = await dbConnection.QueryAsync<int>(sql);
+
+                    return pendingProductValues.FirstOrDefault();
+                }
+            }
+            catch (Exception ex)
+            {
+                return 0;
+            }
+        }
+        public async Task<int> UpdateDefaultCardForAutoship(bool isdefault,string token)
+        {
+            try
+            {
+                using (var dbConnection = new SqlConnection(await _dataService.GetClientConnectionString()))
+                {
+                    var parameters = new
+                    {
+                        is_default = isdefault,
+                        token = token
+                    };
+                    var sql = @$"UPDATE [Client].[wp_woocommerce_payment_tokens]
+                                SET is_default = @is_default
+                                WHERE token = @token";
+
+                    var pendingProductValues = await dbConnection.ExecuteAsync(sql, parameters);
+
+                    return pendingProductValues;
+                }
+            }
+            catch (Exception ex)
+            {
+                return 0;
             }
         }
     }

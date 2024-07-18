@@ -1,4 +1,5 @@
 ﻿using DirectScale.Disco.Extension;
+using DirectScale.Disco.Extension.Services;
 using Microsoft.AspNetCore.DataProtection.KeyManagement;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
@@ -18,11 +19,13 @@ namespace TM3ClientExtension.Controllers
     {
         private readonly ICommissionImportService _commissionImportservice;
         private readonly ICustomLogRepository _customLogRepository;
+        private readonly IAutoshipService _autoshipService;
 
-        public CommissionImportController(ICommissionImportService commissionImportservice, ICustomLogRepository customLogRepository)
+        public CommissionImportController(ICommissionImportService commissionImportservice, ICustomLogRepository customLogRepository, IAutoshipService autoshipService)
         {
             _commissionImportservice = commissionImportservice;
             _customLogRepository = customLogRepository;
+            _autoshipService = autoshipService;
         }
         [HttpGet]
         [Route("ManualBonus")]
@@ -254,11 +257,14 @@ namespace TM3ClientExtension.Controllers
             var MapTm3UsertoWP = new List<HistoricalValues>();
             foreach (var user in users)
             {
-                var GetDSUserID = user.meta_data.FirstOrDefault(m => m.key == "uplineId")?.value.ToString();
-                var GetWPUseridByCustomField = users.Where(x => x.meta_data.Where(m => m.key == "SendItAcademyID").FirstOrDefault()?.value.ToString() == GetDSUserID).FirstOrDefault();
-                if (GetWPUseridByCustomField != null)
+                var GetDSUserID = user.meta_data.FirstOrDefault(m => m.key == "sponsor-id")?.value.ToString();
+                if (GetDSUserID != null)
                 {
-                    var updatedUser = _commissionImportservice.UpdateSponsorDetailsIntoWordpressForSendItAcadamy(user.id, GetWPUseridByCustomField.id).GetAwaiter().GetResult();
+                    var GetWPUseridByCustomField = users.Where(x => x.meta_data.Where(m => m.key == "Sendit-customer-id").FirstOrDefault()?.value.ToString() == GetDSUserID).FirstOrDefault();
+                    if (GetWPUseridByCustomField != null)
+                    {
+                        var updatedUser = _commissionImportservice.UpdateSponsorDetailsIntoWordpressForSendItAcadamy(user.id, GetWPUseridByCustomField.id).GetAwaiter().GetResult();
+                    }
                 }
             }
             return Ok("Success");
@@ -267,24 +273,49 @@ namespace TM3ClientExtension.Controllers
         [Route("ReplaceUserIdForTokens")]
         public IActionResult ReplaceUserIdForTokens()
         {
-            var users = _commissionImportservice.GetAllWPUsers("").GetAwaiter().GetResult();
+            //var users = _commissionImportservice.GetAllWPUsers("").GetAwaiter().GetResult();
             var TokenDetails = _commissionImportservice.GetWPUserTokensData().GetAwaiter().GetResult();
             foreach (var user in TokenDetails)
             {
-                var GetDSUserID = users.Where(x => x.meta_data.Where(m => m.key == "tm3-customer-id").FirstOrDefault()?.value.ToString() == user.user_id).FirstOrDefault();
-                if (GetDSUserID != null)
-                {
+                //var GetDSUserID = users.Where(x => x.meta_data.Where(m => m.key == "tm3-customer-id").FirstOrDefault()?.value.ToString() == user.user_id).FirstOrDefault();
+                //if (GetDSUserID != null)
+                //{
                     WPUserTokens WPTokenData = new WPUserTokens
                     {
                         gateway_id = user.gateway_id,
                         token = user.token,
-                        user_id = GetDSUserID.id.ToString(),
+                        user_id = user.user_id.ToString(),
                         type = user.type,
                         is_default = user.is_default
                     };
-                  var result =  _commissionImportservice.SaveWPTokenDetails(WPTokenData).GetAwaiter().GetResult();
-
+                  var result =  _commissionImportservice.SaveWPTokenDetails(WPTokenData).GetAwaiter().GetResult();                
+            }
+            return Ok("Success");
+        }
+        [HttpGet]
+        [Route("Set_Default_Card_Details")]
+        public IActionResult Set_Default_Card_Details()
+        {
+            var users = _commissionImportservice.GetAllWPUsers("").GetAwaiter().GetResult();
+            var carddetails = _commissionImportservice.GetUserCardDetails().GetAwaiter().GetResult();
+            foreach (var user in carddetails)
+            {
+              var GetAssociateBYEmail = _commissionImportservice.GetAssociateByEmail(users.Where(x => x.id == user.UserId).FirstOrDefault().email).GetAwaiter().GetResult();
+                if (GetAssociateBYEmail != null)
+                {
+                    var getAssociateAutoship = _autoshipService.GetAutoships(GetAssociateBYEmail, false).GetAwaiter().GetResult();
+                    foreach (var autoship in getAssociateAutoship)
+                    {
+                        if (autoship.PaymentMethodId != "")
+                        {
+                           _commissionImportservice.UpdateDefaultCardForAutoship(true, autoship.PaymentMethodId);
+                        }
+                    }
                 }
+              
+
+             
+              
             }
             return Ok("Success");
         }

@@ -37,12 +37,12 @@ namespace TM3ClientExtension
         public void ConfigureServices(IServiceCollection services)
         {
 
-            services.AddSingleton<ITokenProvider>(x => new WebExtensionTokenProvider
-            {
-                DirectScaleUrl = "https://tm3united.corpadmin.directscale.com",
-                DirectScaleSecret = "6LXlgLjmqdU4NA2wtaB3I9NAew2eZUstmhe7iShOt69a",
-                ExtensionSecrets = new[] { "jTQTpzILIqQG7aXomYL1lGuvt6P-bJooupMBdD8rlabl" }
-            });
+            //services.AddSingleton<ITokenProvider>(x => new WebExtensionTokenProvider
+            //{
+            //    DirectScaleUrl = "https://tm3united.corpadmin.directscale.com",
+            //    DirectScaleSecret = "6LXlgLjmqdU4NA2wtaB3I9NAew2eZUstmhe7iShOt69a",
+            //    ExtensionSecrets = new[] { "jTQTpzILIqQG7aXomYL1lGuvt6P-bJooupMBdD8rlabl" }
+            //});
 
             services.AddControllersWithViews();
             services.AddSingleton<IAssociateUpgradeService, AssociateUpgradeService>();

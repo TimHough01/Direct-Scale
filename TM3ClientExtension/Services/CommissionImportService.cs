@@ -41,6 +41,9 @@ namespace TM3ClientExtension.Services
         Task<List<GetHistoricalManualBonusdata>> GetHistoricalManualBonus();
         Task<List<WPUserTokens>> GetWPUserTokensData();
         Task<bool> SaveWPTokenDetails(WPUserTokens req);
+        Task<List<AutoshipCardDetails>> GetUserCardDetails();
+        Task<int> GetAssociateByEmail(string email);
+        Task<int> UpdateDefaultCardForAutoship(bool isdefault, string token);
     }
     public class CommissionImportService : ICommissionImportService
     {
@@ -131,7 +134,7 @@ namespace TM3ClientExtension.Services
             bool hasMoreUsers = true;
             if (UserRole == "")
             {
-                string[] UserRoles = { "subscriber", "customer" };
+                string[] UserRoles = {"customer" };
                 foreach (var item in UserRoles)
                 {
                     page = 1;
@@ -184,7 +187,7 @@ namespace TM3ClientExtension.Services
         {
             var client = new HttpClient();
 
-            var request = new HttpRequestMessage(HttpMethod.Get, $"https://ringaln.com/wp-json/wc/v3/customers?page={page}&per_page={per_page}&role={UserRole}&consumer_key=ck_9298e7ec90dc2600a3bf7e70f95a6bd0c5bdbcd1&consumer_secret=cs_12d1192af74df8db1e154a2e3905e5d54c3f8704");
+            var request = new HttpRequestMessage(HttpMethod.Get, $"https://ringaln.com/wp-json/wc/v3/customers?page={page}&per_page={per_page}&role={UserRole}&consumer_key=ck_90088e8eb5366467e4f11a49ab5a31dab7e9e647&consumer_secret=cs_4479c1ad2746b3037da08a01210721077319a9d3");
 
             var response = await client.SendAsync(request);
             response.EnsureSuccessStatusCode();
@@ -313,7 +316,7 @@ namespace TM3ClientExtension.Services
         {
             var client = new HttpClient();
             var request = new HttpRequestMessage(HttpMethod.Put, $"https://ringaln.com/wp-json/wc/v3/customers/{UserId}");
-            request.Headers.Add("Authorization", "Basic Z29yYXZAY2xvdmVyaXRzZXJ2aWNlcy5jb206YnAwOGdmVjFaMEYhRnZAeTU5NipxMlFC");
+            request.Headers.Add("Authorization", "Basic Y2tfOTAwODhlOGViNTM2NjQ2N2U0ZjExYTQ5YWI1YTMxZGFiN2U5ZTY0Nzpjc180NDc5YzFhZDI3NDZiMzAzN2RhMDhhMDEyMTA3MjEwNzczMTlhOWQz");
 
             var metaData = new
             {
@@ -322,6 +325,11 @@ namespace TM3ClientExtension.Services
                             new
                             {
                                 key = "uplineId",
+                                value = WPUplineID
+                            },
+                            new
+                            {
+                                key = "sponsor-id",
                                 value = WPUplineID
                             }
                         }
@@ -385,7 +393,17 @@ namespace TM3ClientExtension.Services
         {
             return await _userRepository.SaveWPTokenDetails(req);
         }
-
-
+        public async Task<List<AutoshipCardDetails>> GetUserCardDetails()
+        {
+            return await _userRepository.GetUserCardDetails();
+        }
+        public async Task<int> GetAssociateByEmail(string email)
+        {
+            return await _userRepository.GetAssociateByEmail(email);
+        }
+        public async Task<int> UpdateDefaultCardForAutoship(bool isdefault, string token)
+        {
+            return await _userRepository.UpdateDefaultCardForAutoship(isdefault, token);
+        }
     }
 }
