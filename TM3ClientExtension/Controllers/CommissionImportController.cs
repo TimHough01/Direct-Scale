@@ -296,26 +296,51 @@ namespace TM3ClientExtension.Controllers
         [Route("Set_Default_Card_Details")]
         public IActionResult Set_Default_Card_Details()
         {
-            var users = _commissionImportservice.GetAllWPUsers("").GetAwaiter().GetResult();
+            var users = _commissionImportservice.GetAllWPUsersSendItAcadamy("").GetAwaiter().GetResult();
             var carddetails = _commissionImportservice.GetUserCardDetails().GetAwaiter().GetResult();
             foreach (var user in carddetails)
             {
               var GetAssociateBYEmail = _commissionImportservice.GetAssociateByEmail(users.Where(x => x.id == user.UserId).FirstOrDefault().email).GetAwaiter().GetResult();
+
                 if (GetAssociateBYEmail != null)
                 {
-                    var getAssociateAutoship = _autoshipService.GetAutoships(GetAssociateBYEmail, false).GetAwaiter().GetResult();
-                    foreach (var autoship in getAssociateAutoship)
+                  // _commissionImportservice.UpdateDefaultCardForAutoship(true, autoship.PaymentMethodId);
+                }
+            }
+            return Ok("Success");
+        }
+        [HttpGet]
+        [Route("UpdateMatrixValuesInPillars")]
+        public IActionResult UpdateMatrixValuesInPillars()
+        {
+            var users = _commissionImportservice.GetAllWPUsersSendItAcadamy("").GetAwaiter().GetResult();
+            var carddetails = _commissionImportservice.GetSendItAcademy_MatrixData().GetAwaiter().GetResult();
+            string textdata = "";
+            foreach (var sponsor in carddetails.Select(x=>x.sponsorID).ToList())
+            {
+                foreach (var alldata in carddetails)
+                {
+                    if (alldata.sponsorID == sponsor)
                     {
-                        if (autoship.PaymentMethodId != "")
+                        var UserID = users.Where(x => x.meta_data.Where(m => m.key == "Sendit-customer-id").FirstOrDefault()?.value.ToString() == alldata.userID.ToString()).FirstOrDefault();
+                        var sponsorID = users.Where(x => x.meta_data.Where(m => m.key == "Sendit-customer-id").FirstOrDefault()?.value.ToString() == alldata.sponsorID.ToString()).FirstOrDefault();
+                        if (alldata.uplineLeg == 1)
                         {
-                           _commissionImportservice.UpdateDefaultCardForAutoship(true, autoship.PaymentMethodId);
+                            textdata = "Left";
                         }
+                        else if (alldata.uplineLeg == 2)
+                        {
+                            textdata = "Middle";
+                        }
+                        else if (alldata.uplineLeg == 3)
+                        {
+                            textdata = "Right";
+                        }
+                       // _commissionImportservice.UpdateMatrixToPillars(UserID, Int32.Parse(sponsorID), textdata);
                     }
                 }
-              
 
-             
-              
+
             }
             return Ok("Success");
         }

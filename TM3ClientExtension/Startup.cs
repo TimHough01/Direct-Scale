@@ -39,9 +39,9 @@ namespace TM3ClientExtension
 
             //services.AddSingleton<ITokenProvider>(x => new WebExtensionTokenProvider
             //{
-            //    DirectScaleUrl = "https://tm3united.corpadmin.directscale.com",
-            //    DirectScaleSecret = "6LXlgLjmqdU4NA2wtaB3I9NAew2eZUstmhe7iShOt69a",
-            //    ExtensionSecrets = new[] { "jTQTpzILIqQG7aXomYL1lGuvt6P-bJooupMBdD8rlabl" }
+            //    DirectScaleUrl = "https://tm3united.corpadmin.directscalestage.com",
+            //    DirectScaleSecret = "1WaL4NwFUVqJ9E0FnpyJ4oklT9LiL-JFMAk1IClBxLXf",
+            //    ExtensionSecrets = new[] { "95AglyMuoMf9m-TVoXpdwDS3ak2Lb9H4cWPtk2T0XCHG" }
             //});
 
             services.AddControllersWithViews();

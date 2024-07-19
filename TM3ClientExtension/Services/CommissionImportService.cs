@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using Org.BouncyCastle.Ocsp;
 using RestSharp;
 using RestSharp.Authenticators;
 using System;
@@ -44,6 +45,8 @@ namespace TM3ClientExtension.Services
         Task<List<AutoshipCardDetails>> GetUserCardDetails();
         Task<int> GetAssociateByEmail(string email);
         Task<int> UpdateDefaultCardForAutoship(bool isdefault, string token);
+        Task<List<SendItAcademy_MatrixData>> GetSendItAcademy_MatrixData();
+        Task<bool> UpdateMatrixToPillars(int UserID, int uplineId, string uplineLeg);
     }
     public class CommissionImportService : ICommissionImportService
     {
@@ -404,6 +407,42 @@ namespace TM3ClientExtension.Services
         public async Task<int> UpdateDefaultCardForAutoship(bool isdefault, string token)
         {
             return await _userRepository.UpdateDefaultCardForAutoship(isdefault, token);
+        }
+        public async Task<List<SendItAcademy_MatrixData>> GetSendItAcademy_MatrixData()
+        {
+            return await _userRepository.GetSendItAcademy_MatrixData();
+        }
+        public async Task<bool> UpdateMatrixToPillars(int UserID,int uplineId,string uplineLeg)
+        {
+            try
+            {
+                var client = new HttpClient();
+                var request = new HttpRequestMessage(HttpMethod.Put, $"https://api.pillarshub.com/api/v1/Trees/244/Nodes/{UserID}");
+                request.Headers.Add("Authorization", "pDysjDEac5c9wByqJ8uvstEohcKsPBWfUoBXs6W5nVoQ");
+                request.Headers.Add("accept", "application/json");
+                var contentJson = new
+                {
+                    nodeId = UserID,
+                    uplineId = uplineId,
+                    uplineLeg = uplineLeg
+                };
+                var content = new StringContent(
+                     JsonConvert.SerializeObject(contentJson),
+                     Encoding.UTF8,
+                     "application/+json"
+                 );
+                request.Content = content;
+                request.Content = content;
+                var response = await client.SendAsync(request);
+                response.EnsureSuccessStatusCode();
+                var result = await response.Content.ReadAsStringAsync();
+                return true;
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+           
         }
     }
 }

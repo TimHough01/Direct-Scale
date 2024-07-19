@@ -29,6 +29,7 @@ namespace TM3ClientExtension.Repositories
         Task<List<AutoshipCardDetails>> GetUserCardDetails();
         Task<int> GetAssociateByEmail(string email);
         Task<int> UpdateDefaultCardForAutoship(bool isdefault, string token);
+        Task<List<SendItAcademy_MatrixData>> GetSendItAcademy_MatrixData();
 
     }
     public class UserRepository : IUserRepository
@@ -357,6 +358,47 @@ namespace TM3ClientExtension.Repositories
             catch (Exception ex)
             {
                 return 0;
+            }
+        }
+        public async Task<int> GetUserDefaultCard(int associateID)
+        {
+            try
+            {
+                using (var dbConnection = new SqlConnection(await _dataService.GetClientConnectionString()))
+                {
+                    var parameters = new
+                    {
+                        associateID = associateID,
+                       
+                    };
+                    var sql = @$"Select * from crm_Payments";
+
+                    var pendingProductValues = await dbConnection.ExecuteAsync(sql, parameters);
+
+                    return pendingProductValues;
+                }
+            }
+            catch (Exception ex)
+            {
+                return 0;
+            }
+        }
+        public async Task<List<SendItAcademy_MatrixData>> GetSendItAcademy_MatrixData()
+        {
+            try
+            {
+                using (var dbConnection = new SqlConnection(await _dataService.GetClientConnectionString()))
+                {
+                    var sql = @$"select member as userID , sponsor as sponsorID, row_num as uplineLeg from [Client].[SendItAcademy_Matrix]";
+
+                    var GetSendItAcademy_MatrixData = await dbConnection.QueryAsync<SendItAcademy_MatrixData>(sql);
+
+                    return GetSendItAcademy_MatrixData.ToList();
+                }
+            }
+            catch (Exception ex)
+            {
+                return new List<SendItAcademy_MatrixData>();
             }
         }
     }
