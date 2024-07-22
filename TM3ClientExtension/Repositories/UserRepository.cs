@@ -269,13 +269,12 @@ namespace TM3ClientExtension.Repositories
         //}
         public async Task<bool> SaveWPTokenDetails(WPUserTokens req)
         {
-            string connectionString = "Server=stg-mytm3-317.uw2.rapydapps.cloud;Port=8443;Database=wp_1222101;User ID=user-3445075;Password=ekOHaF1bI4;SslMode=Preferred;Connection Timeout=30;";
-
+           
             try
             {
-                using (MySqlConnection conn = new MySqlConnection(connectionString))
+                using (var dbConnection = new SqlConnection(await _dataService.GetClientConnectionString()))
                 {
-                    await conn.OpenAsync(); // Ensure the connection is opened asynchronously
+                   
 
                     var parameters = new
                     {
@@ -287,7 +286,7 @@ namespace TM3ClientExtension.Repositories
                     };
                     var sql = @$"INSERT INTO wp_woocommerce_payment_tokens (gateway_id, token, user_id, type, is_default) VALUES (@gateway_id, @token, @user_id, @type, @is_default)";
 
-                    var pendingProductValues = await conn.ExecuteAsync(sql, parameters);
+                    var pendingProductValues = await dbConnection.ExecuteAsync(sql, parameters);
 
                     return pendingProductValues > 0;
                 }
@@ -389,7 +388,7 @@ namespace TM3ClientExtension.Repositories
             {
                 using (var dbConnection = new SqlConnection(await _dataService.GetClientConnectionString()))
                 {
-                    var sql = @$"select member as userID , sponsor as sponsorID, row_num as uplineLeg from [Client].[SendItAcademy_Matrix]";
+                    var sql = @$"select member as userID,sponsor as sponsorID, row_num as uplineLeg from [Client].[SendItAcademy_Matrix]";
 
                     var GetSendItAcademy_MatrixData = await dbConnection.QueryAsync<SendItAcademy_MatrixData>(sql);
 

@@ -315,32 +315,32 @@ namespace TM3ClientExtension.Controllers
         {
             var users = _commissionImportservice.GetAllWPUsersSendItAcadamy("").GetAwaiter().GetResult();
             var carddetails = _commissionImportservice.GetSendItAcademy_MatrixData().GetAwaiter().GetResult();
-            string textdata = "";
-            foreach (var sponsor in carddetails.Select(x=>x.sponsorID).ToList())
+      
+            List<MatrixUserToPillars> pillarsdata = new List<MatrixUserToPillars>();
+
+            foreach (var sponsor in carddetails.GroupBy(x => x.sponsorID))
             {
-                foreach (var alldata in carddetails)
+                var sponsorID = users.Where(x => x.meta_data.Where(m => m.key == "Sendit-customer-id").FirstOrDefault()?.value.ToString() == sponsor.Key.ToString()).FirstOrDefault();
+                if (sponsorID != null)
                 {
-                    if (alldata.sponsorID == sponsor)
+                    foreach (var customer in sponsor.ToList())
                     {
-                        var UserID = users.Where(x => x.meta_data.Where(m => m.key == "Sendit-customer-id").FirstOrDefault()?.value.ToString() == alldata.userID.ToString()).FirstOrDefault();
-                        var sponsorID = users.Where(x => x.meta_data.Where(m => m.key == "Sendit-customer-id").FirstOrDefault()?.value.ToString() == alldata.sponsorID.ToString()).FirstOrDefault();
-                        if (alldata.uplineLeg == 1)
+                        var UserID = users.Where(x => x.meta_data.Where(m => m.key == "Sendit-customer-id").FirstOrDefault()?.value.ToString() == customer.userID.ToString()).FirstOrDefault();
+                        if (UserID != null)
                         {
-                            textdata = "Left";
+                            string textdata = customer.uplineLeg == 1 ? "Left" : customer.uplineLeg == 2 ? "Middle" : "Right";
+                            MatrixUserToPillars pillarsUserdata = new MatrixUserToPillars
+                            {
+                                UserID = UserID.id,
+                                SponsorId = sponsorID.id,
+                                uplineLeg = textdata
+                            };
+                            var result = _commissionImportservice.UpdateMatrixToPillars(pillarsUserdata).GetAwaiter().GetResult();
+                            pillarsdata.Add(pillarsUserdata);
                         }
-                        else if (alldata.uplineLeg == 2)
-                        {
-                            textdata = "Middle";
-                        }
-                        else if (alldata.uplineLeg == 3)
-                        {
-                            textdata = "Right";
-                        }
-                       // _commissionImportservice.UpdateMatrixToPillars(UserID, Int32.Parse(sponsorID), textdata);
                     }
                 }
-
-
+               
             }
             return Ok("Success");
         }

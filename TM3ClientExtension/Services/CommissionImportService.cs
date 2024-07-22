@@ -46,7 +46,7 @@ namespace TM3ClientExtension.Services
         Task<int> GetAssociateByEmail(string email);
         Task<int> UpdateDefaultCardForAutoship(bool isdefault, string token);
         Task<List<SendItAcademy_MatrixData>> GetSendItAcademy_MatrixData();
-        Task<bool> UpdateMatrixToPillars(int UserID, int uplineId, string uplineLeg);
+        Task<bool> UpdateMatrixToPillars(MatrixUserToPillars request);
     }
     public class CommissionImportService : ICommissionImportService
     {
@@ -412,19 +412,19 @@ namespace TM3ClientExtension.Services
         {
             return await _userRepository.GetSendItAcademy_MatrixData();
         }
-        public async Task<bool> UpdateMatrixToPillars(int UserID,int uplineId,string uplineLeg)
+        public async Task<bool> UpdateMatrixToPillars(MatrixUserToPillars req)
         {
             try
             {
                 var client = new HttpClient();
-                var request = new HttpRequestMessage(HttpMethod.Put, $"https://api.pillarshub.com/api/v1/Trees/244/Nodes/{UserID}");
+                var request = new HttpRequestMessage(HttpMethod.Put, $"https://api.pillarshub.com/api/v1/Trees/244/Nodes/{req.UserID}");
                 request.Headers.Add("Authorization", "pDysjDEac5c9wByqJ8uvstEohcKsPBWfUoBXs6W5nVoQ");
                 request.Headers.Add("accept", "application/json");
                 var contentJson = new
                 {
-                    nodeId = UserID,
-                    uplineId = uplineId,
-                    uplineLeg = uplineLeg
+                    nodeId = req.UserID,
+                    uplineId = req.SponsorId,
+                    uplineLeg = req.uplineLeg
                 };
                 var content = new StringContent(
                      JsonConvert.SerializeObject(contentJson),
