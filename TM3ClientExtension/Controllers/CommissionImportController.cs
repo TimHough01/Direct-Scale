@@ -273,22 +273,23 @@ namespace TM3ClientExtension.Controllers
         [Route("ReplaceUserIdForTokens")]
         public IActionResult ReplaceUserIdForTokens()
         {
-            //var users = _commissionImportservice.GetAllWPUsers("").GetAwaiter().GetResult();
+            var users = _commissionImportservice.GetAllWPUsers("").GetAwaiter().GetResult();
             var TokenDetails = _commissionImportservice.GetWPUserTokensData().GetAwaiter().GetResult();
             foreach (var user in TokenDetails)
             {
-                //var GetDSUserID = users.Where(x => x.meta_data.Where(m => m.key == "tm3-customer-id").FirstOrDefault()?.value.ToString() == user.user_id).FirstOrDefault();
-                //if (GetDSUserID != null)
-                //{
+                var GetDSUserID = users.Where(x => x.meta_data.Where(m => m.key == "tm3-customer-id").FirstOrDefault()?.value.ToString() == user.user_id).FirstOrDefault();
+                if (GetDSUserID != null)
+                {
                     WPUserTokens WPTokenData = new WPUserTokens
                     {
                         gateway_id = user.gateway_id,
                         token = user.token,
-                        user_id = user.user_id.ToString(),
+                        user_id = GetDSUserID.id.ToString(),
                         type = user.type,
                         is_default = user.is_default
                     };
-                  var result =  _commissionImportservice.SaveWPTokenDetails(WPTokenData).GetAwaiter().GetResult();                
+                    var result = _commissionImportservice.SaveWPTokenDetails(WPTokenData).GetAwaiter().GetResult();
+                }
             }
             return Ok("Success");
         }

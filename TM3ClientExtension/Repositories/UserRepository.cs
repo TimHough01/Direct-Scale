@@ -211,7 +211,7 @@ namespace TM3ClientExtension.Repositories
         {
             using (var dbConnection = new SqlConnection(await _dataService.GetClientConnectionString()))
             {
-                var sql = @$"select * from Client.WPTokensDetails";
+                var sql = @$"select * from Client.WPTokensDetails where user_id is not null";
 
                 var Pendingproductvalues = await dbConnection.QueryAsync<WPUserTokens>(sql);
 
@@ -274,8 +274,6 @@ namespace TM3ClientExtension.Repositories
             {
                 using (var dbConnection = new SqlConnection(await _dataService.GetClientConnectionString()))
                 {
-                   
-
                     var parameters = new
                     {
                         gateway_id = req.gateway_id,
@@ -284,7 +282,7 @@ namespace TM3ClientExtension.Repositories
                         type = req.type,
                         is_default = req.is_default
                     };
-                    var sql = @$"INSERT INTO wp_woocommerce_payment_tokens (gateway_id, token, user_id, type, is_default) VALUES (@gateway_id, @token, @user_id, @type, @is_default)";
+                    var sql = @$"INSERT INTO [Client].[wp_woocommerce_payment_tokens] (token_id,gateway_id, token, user_id, type, is_default) VALUES (0,@gateway_id, @token, @user_id, @type, @is_default)";
 
                     var pendingProductValues = await dbConnection.ExecuteAsync(sql, parameters);
 
