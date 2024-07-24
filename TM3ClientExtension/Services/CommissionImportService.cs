@@ -8,6 +8,7 @@ using RestSharp.Authenticators;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
@@ -47,6 +48,7 @@ namespace TM3ClientExtension.Services
         Task<int> UpdateDefaultCardForAutoship(bool isdefault, string token);
         Task<List<SendItAcademy_MatrixData>> GetSendItAcademy_MatrixData();
         Task<bool> UpdateMatrixToPillars(MatrixUserToPillars request);
+        Task<PillarUserModel> GetUserDetailsFromPillars(string email);
     }
     public class CommissionImportService : ICommissionImportService
     {
@@ -443,6 +445,27 @@ namespace TM3ClientExtension.Services
                 return false;
             }
            
+        }
+        public async Task<PillarUserModel> GetUserDetailsFromPillars(string email)
+        {
+            try
+            {
+                var IsTrue = true;
+                var client = new HttpClient();
+                var request = new HttpRequestMessage(HttpMethod.Get, $"https://api.pillarshub.com/api/v1/Customers/Find?search={email}&emailAddress={IsTrue}");
+                request.Headers.Add("Authorization", "pDysjDEac5c9wByqJ8uvstEohcKsPBWfUoBXs6W5nVoQ");
+                request.Headers.Add("accept", "application/json");
+                var response = await client.SendAsync(request);
+                response.EnsureSuccessStatusCode();
+                var users = JsonConvert.DeserializeObject<List<PillarUserModel>>(await response.Content.ReadAsStringAsync());
+                return users.FirstOrDefault();
+
+            }
+            catch (Exception)
+            {
+                return new PillarUserModel();
+            }
+
         }
     }
 }

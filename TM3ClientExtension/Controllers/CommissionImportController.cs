@@ -314,26 +314,25 @@ namespace TM3ClientExtension.Controllers
         [Route("UpdateMatrixValuesInPillars")]
         public IActionResult UpdateMatrixValuesInPillars()
         {
-            var users = _commissionImportservice.GetAllWPUsersSendItAcadamy("").GetAwaiter().GetResult();
             var carddetails = _commissionImportservice.GetSendItAcademy_MatrixData().GetAwaiter().GetResult();
       
             List<MatrixUserToPillars> pillarsdata = new List<MatrixUserToPillars>();
 
-            foreach (var sponsor in carddetails.GroupBy(x => x.sponsorID))
+            foreach (var sponsor in carddetails.GroupBy(x => x.sponsorEmail))
             {
-                var sponsorID = users.Where(x => x.meta_data.Where(m => m.key == "Sendit-customer-id").FirstOrDefault()?.value.ToString() == sponsor.Key.ToString()).FirstOrDefault();
-                if (sponsorID != null)
+                var sponsorDetails = _commissionImportservice.GetUserDetailsFromPillars(sponsor.Key).GetAwaiter().GetResult();
+                if (sponsorDetails != null)
                 {
                     foreach (var customer in sponsor.ToList())
                     {
-                        var UserID = users.Where(x => x.meta_data.Where(m => m.key == "Sendit-customer-id").FirstOrDefault()?.value.ToString() == customer.userID.ToString()).FirstOrDefault();
-                        if (UserID != null)
+                        var UserDetails = _commissionImportservice.GetUserDetailsFromPillars(customer.userEmail).GetAwaiter().GetResult();
+                        if (UserDetails != null)
                         {
-                            string textdata = customer.uplineLeg == 1 ? "Left" : customer.uplineLeg == 2 ? "Middle" : "Right";
+                            string textdata = customer.row_num == 1 ? "Left" : customer.row_num == 2 ? "Middle" : "Right";
                             MatrixUserToPillars pillarsUserdata = new MatrixUserToPillars
                             {
-                                UserID = UserID.id,
-                                SponsorId = sponsorID.id,
+                                UserID = UserDetails.Id,
+                                SponsorId = sponsorDetails.Id,
                                 uplineLeg = textdata
                             };
                             var result = _commissionImportservice.UpdateMatrixToPillars(pillarsUserdata).GetAwaiter().GetResult();

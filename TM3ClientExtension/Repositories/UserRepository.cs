@@ -386,7 +386,7 @@ namespace TM3ClientExtension.Repositories
             {
                 using (var dbConnection = new SqlConnection(await _dataService.GetClientConnectionString()))
                 {
-                    var sql = @$"select member as userID,sponsor as sponsorID, row_num as uplineLeg from [Client].[SendItAcademy_Matrix]";
+                    var sql = @$"select * from [Client].[SendItAcademy_Matrix]";
 
                     var GetSendItAcademy_MatrixData = await dbConnection.QueryAsync<SendItAcademy_MatrixData>(sql);
 
