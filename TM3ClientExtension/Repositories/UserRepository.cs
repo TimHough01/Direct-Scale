@@ -24,8 +24,8 @@ namespace TM3ClientExtension.Repositories
         Task<List<RewardPoints>> GetRewardPointDetails();
         Task<List<Pendingproductvalue>> GetPendingProductValue();
         Task<List<GetHistoricalManualBonusdata>> GetHistoricalManualBonus();
-        Task<List<WPUserTokens>> GetWPUserTokensData();
-        Task<bool> SaveWPTokenDetails(WPUserTokens req);
+        Task<List<WPUserTokensrequest>> GetWPUserTokensData();
+        Task<bool> SaveWPTokenDetails(WPUserTokensrequest req);
         Task<List<AutoshipCardDetails>> GetUserCardDetails();
         Task<int> GetAssociateByEmail(string email);
         Task<int> UpdateDefaultCardForAutoship(bool isdefault, string token);
@@ -207,13 +207,51 @@ namespace TM3ClientExtension.Repositories
         //        return Pendingproductvalues.ToList();
         //    }
         //}
-        public async Task<List<WPUserTokens>> GetWPUserTokensData()
+        public async Task<List<WPUserTokensrequest>> GetWPUserTokensData()
         {
             using (var dbConnection = new SqlConnection(await _dataService.GetClientConnectionString()))
             {
-                var sql = @$"select * from Client.WPTokensDetails where user_id is not null";
+                var sql = @$"WITH ranked_payments AS (
+                                SELECT DISTINCT 
+                                    cm.DistributorID AS user_id,
+                                    'nmi' AS Gateway_id,
+                                    ct.customer_vault_id AS token,
+                                    'CC' AS type,
+                                    cm.Input2,
+                                    cm.ProfileType,
+                                    cm.last_modified,
+                                    ROW_NUMBER() OVER (PARTITION BY cm.Input2 ORDER BY cm.last_modified DESC) AS rn,
+                                    CASE 
+                                        WHEN cm.ProfileType = 'primary' AND ROW_NUMBER() OVER (PARTITION BY cm.Input2 ORDER BY cm.last_modified DESC) = 1 THEN 1
+                                        ELSE 0
+                                    END AS is_default
+                                FROM 
+                                    CRM_PAYMENTS cm
+                                JOIN 
+                                    [Client].[Export_subscription_tokens] ct 
+                                    ON cm.DistributorID = ct.DirectScale_ID 
+                                    AND cm.Input2 = ct.Last4
+                                WHERE 
+                                    cm.FirstSix IS NOT NULL 
+                                    AND cm.ExternalID IS NOT NULL 
+                                    AND cm.Input2 IS NOT NULL
+                            )
+                            SELECT 
+                                user_id,
+                                Gateway_id,
+                                token,
+                                type,
+                                Input2,
+                                ProfileType,
+                                last_modified,
+                                is_default
+                            FROM 
+                                ranked_payments
+                            WHERE 
+                                rn = 1;
+";
 
-                var Pendingproductvalues = await dbConnection.QueryAsync<WPUserTokens>(sql);
+                var Pendingproductvalues = await dbConnection.QueryAsync<WPUserTokensrequest>(sql);
 
                 return Pendingproductvalues.ToList();
             }
@@ -267,7 +305,7 @@ namespace TM3ClientExtension.Repositories
         //        return false;
         //    }
         //}
-        public async Task<bool> SaveWPTokenDetails(WPUserTokens req)
+        public async Task<bool> SaveWPTokenDetails(WPUserTokensrequest req)
         {
            
             try

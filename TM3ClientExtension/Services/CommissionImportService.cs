@@ -1,4 +1,5 @@
 ﻿using DirectScale.Disco.Extension;
+using Google.Protobuf.WellKnownTypes;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -19,6 +20,7 @@ using System.Threading.Tasks;
 using TM3ClientExtension.Models;
 using TM3ClientExtension.Repositories;
 using static Dapper.SqlMapper;
+using static Mysqlx.Expect.Open.Types.Condition.Types;
 
 namespace TM3ClientExtension.Services
 {
@@ -41,8 +43,8 @@ namespace TM3ClientExtension.Services
         Task<List<Pendingproductvalue>> GetPendingProductValue();
         Task<HistoricalBonusResponse> PostHistoricalManualBonus(HistoricalBonusRequest req);
         Task<List<GetHistoricalManualBonusdata>> GetHistoricalManualBonus();
-        Task<List<WPUserTokens>> GetWPUserTokensData();
-        Task<bool> SaveWPTokenDetails(WPUserTokens req);
+        Task<List<WPUserTokensrequest>> GetWPUserTokensData();
+        Task<bool> SaveWPTokenDetails(WPUserTokensrequest req);
         Task<List<AutoshipCardDetails>> GetUserCardDetails();
         Task<int> GetAssociateByEmail(string email);
         Task<int> UpdateDefaultCardForAutoship(bool isdefault, string token);
@@ -302,6 +304,10 @@ namespace TM3ClientExtension.Services
                             {
                                 key = "sponsor-id",
                                 value = WPUplineID
+                            },
+                            new {
+                                key = "uplineId",
+                                value = WPUplineID
                             }
                         }
                     };
@@ -390,11 +396,11 @@ namespace TM3ClientExtension.Services
             return await _userRepository.GetHistoricalManualBonus();
         }
 
-        public async Task<List<WPUserTokens>> GetWPUserTokensData()
+        public async Task<List<WPUserTokensrequest>> GetWPUserTokensData()
         {
             return await _userRepository.GetWPUserTokensData();
         }
-        public async Task<bool> SaveWPTokenDetails(WPUserTokens req)
+        public async Task<bool> SaveWPTokenDetails(WPUserTokensrequest req)
         {
             return await _userRepository.SaveWPTokenDetails(req);
         }
