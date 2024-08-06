@@ -210,6 +210,7 @@ namespace TM3ClientExtension.Controllers
                     var GetWPUseridByCustomField = users.Where(x => x.meta_data.Where(m => m.key == "tm3-customer-id").FirstOrDefault()?.value.ToString() == GetDSUserID).FirstOrDefault();
                     if (GetWPUseridByCustomField != null)
                     {
+
                         var updatedUser =  _commissionImportservice.UpdateSponsorDetailsIntoWordpress(user.id, GetWPUseridByCustomField.id).GetAwaiter().GetResult();
                     }
 
@@ -300,7 +301,7 @@ namespace TM3ClientExtension.Controllers
                 var GetDSUserID = users.Where(x => x.meta_data.Where(m => m.key == "tm3-customer-id").FirstOrDefault()?.value.ToString() == user.user_id).FirstOrDefault();
                 if (GetDSUserID != null)
                 {
-                    WPUserTokens WPTokenData = new WPUserTokens
+                    WPUserTokensrequest WPTokenData = new WPUserTokensrequest
                     {
                         gateway_id = user.gateway_id,
                         token = user.token,
@@ -406,6 +407,39 @@ namespace TM3ClientExtension.Controllers
             catch (Exception ex)
             {
                 var enrollmentInfo = pillarsdata;
+            }
+            return Ok("Success");
+        }
+        [HttpGet]
+        [Route("deletehistoricalbonus")]
+        public IActionResult deletehistoricalbonus()
+        {
+
+            List<MatrixUserToPillars> pillarsdata = new List<MatrixUserToPillars>();
+
+            foreach (var sponsor in carddetails.GroupBy(x => x.sponsorEmail))
+            {
+                var sponsorDetails = _commissionImportservice.GetUserDetailsFromPillars(sponsor.Key).GetAwaiter().GetResult();
+                if (sponsorDetails != null)
+                {
+                    foreach (var customer in sponsor.ToList())
+                    {
+                        var UserDetails = _commissionImportservice.GetUserDetailsFromPillars(customer.userEmail).GetAwaiter().GetResult();
+                        if (UserDetails != null)
+                        {
+                            string textdata = customer.row_num == 1 ? "Left" : customer.row_num == 2 ? "Middle" : "Right";
+                            MatrixUserToPillars pillarsUserdata = new MatrixUserToPillars
+                            {
+                                UserID = UserDetails.Id,
+                                SponsorId = sponsorDetails.Id,
+                                uplineLeg = textdata
+                            };
+                            var result = _commissionImportservice.UpdateMatrixToPillars(pillarsUserdata).GetAwaiter().GetResult();
+                            pillarsdata.Add(pillarsUserdata);
+                        }
+                    }
+                }
+
             }
             return Ok("Success");
         }
