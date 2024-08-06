@@ -254,21 +254,41 @@ namespace TM3ClientExtension.Controllers
         public IActionResult ChangeSponsorIDsForSendItAcadamy()
         {
             var users = _commissionImportservice.GetAllWPUsersSendItAcadamy("").GetAwaiter().GetResult();
-            var MapTm3UsertoWP = new List<HistoricalValues>();
+            List<EnrollmentUserToPillars> pillarsdata = new List<EnrollmentUserToPillars>();
             foreach (var user in users)
             {
-                var GetDSUserID = user.meta_data.FirstOrDefault(m => m.key == "sponsor-id")?.value.ToString();
-                if (GetDSUserID != null)
+                try
                 {
-                    var GetWPUseridByCustomField = users.Where(x => x.meta_data.Where(m => m.key == "Sendit-customer-id").FirstOrDefault()?.value.ToString() == GetDSUserID).FirstOrDefault();
-                    if (GetWPUseridByCustomField != null)
+                    var GetDSUserID = user.meta_data.FirstOrDefault(m => m.key == "sponsor-id")?.value.ToString();
+                    if (GetDSUserID != null)
                     {
-                        var updatedUser = _commissionImportservice.UpdateSponsorDetailsIntoWordpressForSendItAcadamy(user.id, GetWPUseridByCustomField.id).GetAwaiter().GetResult();
+                        var GetWPUseridByCustomField = users.FirstOrDefault(x => x.meta_data.Any(m => m.key == "Sendit-customer-id" && m.value.ToString() == GetDSUserID));
+                        if (GetWPUseridByCustomField != null)
+                        {
+                            if(GetWPUseridByCustomField.id != Convert.ToInt32(GetDSUserID))
+                            {
+                                EnrollmentUserToPillars pillarsUserdata = new EnrollmentUserToPillars
+                                {
+                                    CustomerId = Convert.ToString(user.id),
+                                    SponsorId = Convert.ToString(GetWPUseridByCustomField.id)
+                                };
+
+                                var updatedUser = _commissionImportservice.UpdateSponsorDetailsIntoWordpressForSendItAcadamy(user.id, GetWPUseridByCustomField.id).GetAwaiter().GetResult();
+                                pillarsdata.Add(pillarsUserdata);
+                            }
+                        }
                     }
                 }
+                catch (Exception ex)
+                {
+                    var sponsorInfo = pillarsdata;
+                    Console.WriteLine($"Error updating user {user.id}: {ex.Message}");
+                }
             }
+            var sponsorUpdateInfo = pillarsdata;
             return Ok("Success");
         }
+
         [HttpGet]
         [Route("ReplaceUserIdForTokens")]
         public IActionResult ReplaceUserIdForTokens()
@@ -317,30 +337,75 @@ namespace TM3ClientExtension.Controllers
             var carddetails = _commissionImportservice.GetSendItAcademy_MatrixData().GetAwaiter().GetResult();
       
             List<MatrixUserToPillars> pillarsdata = new List<MatrixUserToPillars>();
-
-            foreach (var sponsor in carddetails.GroupBy(x => x.sponsorEmail))
+            try
             {
-                var sponsorDetails = _commissionImportservice.GetUserDetailsFromPillars(sponsor.Key).GetAwaiter().GetResult();
-                if (sponsorDetails != null)
+                foreach (var sponsor in carddetails.GroupBy(x => x.sponsorEmail))
                 {
-                    foreach (var customer in sponsor.ToList())
+                    var sponsorDetails = _commissionImportservice.GetUserDetailsFromPillars(sponsor.Key).GetAwaiter().GetResult();
+                    if (sponsorDetails != null)
                     {
-                        var UserDetails = _commissionImportservice.GetUserDetailsFromPillars(customer.userEmail).GetAwaiter().GetResult();
-                        if (UserDetails != null)
+                        foreach (var customer in sponsor.ToList())
                         {
-                            string textdata = customer.row_num == 1 ? "Left" : customer.row_num == 2 ? "Middle" : "Right";
-                            MatrixUserToPillars pillarsUserdata = new MatrixUserToPillars
+                            var UserDetails = _commissionImportservice.GetUserDetailsFromPillars(customer.userEmail).GetAwaiter().GetResult();
+                            if (UserDetails != null)
                             {
-                                UserID = UserDetails.Id,
-                                SponsorId = sponsorDetails.Id,
-                                uplineLeg = textdata
-                            };
-                            var result = _commissionImportservice.UpdateMatrixToPillars(pillarsUserdata).GetAwaiter().GetResult();
-                            pillarsdata.Add(pillarsUserdata);
+                                string textdata = customer.row_num == 1 ? "Left" : customer.row_num == 2 ? "Middle" : "Right";
+                                MatrixUserToPillars pillarsUserdata = new MatrixUserToPillars
+                                {
+                                    UserID = UserDetails.Id,
+                                    SponsorId = sponsorDetails.Id,
+                                    uplineLeg = textdata
+                                };
+                                var result = _commissionImportservice.UpdateMatrixToPillars(pillarsUserdata).GetAwaiter().GetResult();
+                                pillarsdata.Add(pillarsUserdata);
+                            }
                         }
                     }
                 }
-               
+                var matrixInfo = pillarsdata;
+            }
+            catch(Exception ex)
+            {
+                var matrixInfo = pillarsdata;
+            }
+            return Ok("Success");
+        }
+
+        [HttpGet]
+        [Route("UpdateEnrollmentValuesInPillars")]
+        public IActionResult UpdateEnrollmentValuesInPillars()
+        {
+            var enrolluserDetails = _commissionImportservice.GetSendItAcademy_EnrollmentData().GetAwaiter().GetResult();
+
+            List<EnrollmentUserToPillars> pillarsdata = new List<EnrollmentUserToPillars>();
+            try
+            {
+                foreach (var sponsor in enrolluserDetails.GroupBy(x => x.sponsorEmail))
+                {
+                    var sponsorDetails = _commissionImportservice.GetUserDetailsFromPillars(sponsor.Key).GetAwaiter().GetResult();
+                    if (sponsorDetails != null)
+                    {
+                        foreach (var customer in sponsor.ToList())
+                        {
+                            var UserDetails = _commissionImportservice.GetUserDetailsFromPillars(customer.customerEmail).GetAwaiter().GetResult();
+                            if (UserDetails != null)
+                            {
+                                EnrollmentUserToPillars pillarsUserdata = new EnrollmentUserToPillars
+                                {
+                                    CustomerId = UserDetails.Id,
+                                    SponsorId = sponsorDetails.Id
+                                };
+                                var result = _commissionImportservice.UpdateEnrollmentToPillars(pillarsUserdata).GetAwaiter().GetResult();
+                                pillarsdata.Add(pillarsUserdata);
+                            }
+                        }
+                    }
+                }
+                var enrollmentInfo = pillarsdata;
+            }
+            catch (Exception ex)
+            {
+                var enrollmentInfo = pillarsdata;
             }
             return Ok("Success");
         }

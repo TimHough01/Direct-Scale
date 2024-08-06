@@ -47,7 +47,9 @@ namespace TM3ClientExtension.Services
         Task<int> GetAssociateByEmail(string email);
         Task<int> UpdateDefaultCardForAutoship(bool isdefault, string token);
         Task<List<SendItAcademy_MatrixData>> GetSendItAcademy_MatrixData();
+        Task<List<SendItAcademy_EnrollmentData>> GetSendItAcademy_EnrollmentData();
         Task<bool> UpdateMatrixToPillars(MatrixUserToPillars request);
+        Task<bool> UpdateEnrollmentToPillars(EnrollmentUserToPillars request);
         Task<PillarUserModel> GetUserDetailsFromPillars(string email);
     }
     public class CommissionImportService : ICommissionImportService
@@ -130,52 +132,29 @@ namespace TM3ClientExtension.Services
             
         }
 
-        public async Task<List<Users>> GetAllWPUsersSendItAcadamy(string UserRole)
+        public async Task<List<Users>> GetAllWPUsersSendItAcadamy(string userRole)
         {
             var allUsers = new List<Users>();
             int page = 1;
-            var users = new List<Users>();
-            int perPage = 100;
+            const int perPage = 100;
             bool hasMoreUsers = true;
-            if (UserRole == "")
+
+            string[] userRoles = string.IsNullOrEmpty(userRole) ? new[] { "customer" } : new[] { userRole };
+
+            foreach (var role in userRoles)
             {
-                string[] UserRoles = {"customer" };
-                foreach (var item in UserRoles)
-                {
-                    page = 1;
-                    hasMoreUsers = true;
-                    while (hasMoreUsers)
-                    {
-                        users = await GetWPUsersSendItAcadamy(page, perPage, item);
-                        if (users.Count > 0)
-                        {
-                            allUsers.AddRange(users);
-                            page++;
-                            if (users.Count < 100)
-                            {
-                                hasMoreUsers = false;
-                            }
-                        }
-                        else
-                        {
-                            hasMoreUsers = false;
-                        }
-                    }
-                }
-            }
-            else
-            {
+                page = 1;
+                hasMoreUsers = true;
+
                 while (hasMoreUsers)
                 {
-                    users = await GetWPUsersSendItAcadamy(page, perPage, UserRole);
+                    var users = await GetWPUsersSendItAcadamy(page, perPage, role);
+
                     if (users.Count > 0)
                     {
                         allUsers.AddRange(users);
                         page++;
-                        if (users.Count < 100)
-                        {
-                            hasMoreUsers = false;
-                        }
+                        hasMoreUsers = users.Count == perPage;
                     }
                     else
                     {
@@ -183,23 +162,78 @@ namespace TM3ClientExtension.Services
                     }
                 }
             }
-
-
-             return allUsers;
+            return allUsers;
         }
 
         public async Task<List<Users>> GetWPUsersSendItAcadamy(int page, int per_page, string UserRole)
         {
             var client = new HttpClient();
+            var maxRetries = 5;
+            var delay = TimeSpan.FromSeconds(1);
 
-            var request = new HttpRequestMessage(HttpMethod.Get, $"https://ringaln.com/wp-json/wc/v3/customers?page={page}&per_page={per_page}&role={UserRole}&consumer_key=ck_90088e8eb5366467e4f11a49ab5a31dab7e9e647&consumer_secret=cs_4479c1ad2746b3037da08a01210721077319a9d3");
+            for (int retry = 0; retry < maxRetries; retry++)
+            {
+                try
+                {
+                    var request = new HttpRequestMessage(HttpMethod.Get, $"https://ringaln.com/wp-json/wc/v3/customers?page={page}&per_page={per_page}&role={UserRole}&consumer_key=ck_90088e8eb5366467e4f11a49ab5a31dab7e9e647&consumer_secret=cs_4479c1ad2746b3037da08a01210721077319a9d3");
 
-            var response = await client.SendAsync(request);
-            response.EnsureSuccessStatusCode();
-            var users = JsonConvert.DeserializeObject<List<Users>>(await response.Content.ReadAsStringAsync());
-            return users;
-
+                    var response = await client.SendAsync(request);
+                    response.EnsureSuccessStatusCode();
+                    var users = JsonConvert.DeserializeObject<List<Users>>(await response.Content.ReadAsStringAsync());
+                    return users;
+                }
+                catch (HttpRequestException ex) when ((int)ex.StatusCode == 429)
+                {
+                    // If the status code is 429, wait for the delay and retry
+                    await Task.Delay(delay);
+                    // Exponential backoff: double the delay each time
+                    delay = TimeSpan.FromSeconds(delay.TotalSeconds * 2);
+                }
+                catch (Exception ex)
+                {
+                    // Handle other exceptions if necessary
+                    Console.WriteLine($"Error fetching users: {ex.Message}");
+                    break;
+                }
+            }
+            return new List<Users>(); // Return an empty list if all retries fail
         }
+
+        // synchronous call
+        //public List<Users> GetWPUsersSendItAcadamy(int page, int per_page, string UserRole)
+        //{
+        //    var client = new HttpClient();
+        //    var maxRetries = 5;
+        //    var delay = TimeSpan.FromSeconds(1);
+
+        //    for (int retry = 0; retry < maxRetries; retry++)
+        //    {
+        //        try
+        //        {
+        //            var request = new HttpRequestMessage(HttpMethod.Get, $"https://ringaln.com/wp-json/wc/v3/customers?page={page}&per_page={per_page}&role={UserRole}&consumer_key=ck_90088e8eb5366467e4f11a49ab5a31dab7e9e647&consumer_secret=cs_4479c1ad2746b3037da08a01210721077319a9d3");
+
+        //            var response = client.Send(request);
+        //            response.EnsureSuccessStatusCode();
+        //            var users = JsonConvert.DeserializeObject<List<Users>>(response.Content.ReadAsStringAsync().Result);
+        //            return users;
+        //        }
+        //        catch (HttpRequestException ex) when ((int)ex.StatusCode == 429)
+        //        {
+        //            // If the status code is 429, wait for the delay and retry
+        //            System.Threading.Thread.Sleep(delay);
+        //            // Exponential backoff: double the delay each time
+        //            delay = TimeSpan.FromSeconds(delay.TotalSeconds * 2);
+        //        }
+        //        catch (Exception ex)
+        //        {
+        //            // Handle other exceptions if necessary
+        //            Console.WriteLine($"Error fetching users: {ex.Message}");
+        //            break;
+        //        }
+        //    }
+
+        //    return new List<Users>(); // Return an empty list if all retries fail
+        //}
 
         public async Task<List<UnreleasedBonusReaponse>> GetCommissionDetails()
         {
@@ -319,6 +353,10 @@ namespace TM3ClientExtension.Services
 
         public async Task<Users> UpdateSponsorDetailsIntoWordpressForSendItAcadamy(int UserId, int WPUplineID)
         {
+            const int maxRetries = 5;
+            int retries = 0;
+            int delay = 2000; // initial delay in milliseconds (2 seconds)
+
             var client = new HttpClient();
             var request = new HttpRequestMessage(HttpMethod.Put, $"https://ringaln.com/wp-json/wc/v3/customers/{UserId}");
             request.Headers.Add("Authorization", "Basic Y2tfOTAwODhlOGViNTM2NjQ2N2U0ZjExYTQ5YWI1YTMxZGFiN2U5ZTY0Nzpjc180NDc5YzFhZDI3NDZiMzAzN2RhMDhhMDEyMTA3MjEwNzczMTlhOWQz");
@@ -327,28 +365,37 @@ namespace TM3ClientExtension.Services
             {
                 meta_data = new[]
                 {
-                            new
-                            {
-                                key = "uplineId",
-                                value = WPUplineID
-                            },
-                            new
-                            {
-                                key = "sponsor-id",
-                                value = WPUplineID
-                            }
-                        }
+            new { key = "uplineId", value = WPUplineID },
+            new { key = "sponsor-id", value = WPUplineID }
+        }
             };
 
             string jsonString = JsonConvert.SerializeObject(metaData);
-
             var content = new StringContent(jsonString, Encoding.UTF8, "application/json");
             request.Content = content;
-            var response = await client.SendAsync(request);
-            response.EnsureSuccessStatusCode();
-            var user = JsonConvert.DeserializeObject<Users>(await response.Content.ReadAsStringAsync());
 
-            return user;
+            while (retries < maxRetries)
+            {
+                var response = await client.SendAsync(request);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var user = JsonConvert.DeserializeObject<Users>(await response.Content.ReadAsStringAsync());
+                    return user;
+                }
+                else if (response.StatusCode == (System.Net.HttpStatusCode)429)
+                {
+                    retries++;
+                    await Task.Delay(delay);
+                    delay *= 2; // Exponential backoff
+                }
+                else
+                {
+                    response.EnsureSuccessStatusCode();
+                }
+            }
+
+            throw new HttpRequestException("Max retry attempts exceeded.");
         }
 
         public async Task<List<RewardPoints>> GetRewardPointsData()
@@ -414,6 +461,10 @@ namespace TM3ClientExtension.Services
         {
             return await _userRepository.GetSendItAcademy_MatrixData();
         }
+        public async Task<List<SendItAcademy_EnrollmentData>> GetSendItAcademy_EnrollmentData()
+        {
+            return await _userRepository.GetSendItAcademy_EnrollmentData();
+        }
         public async Task<bool> UpdateMatrixToPillars(MatrixUserToPillars req)
         {
             try
@@ -446,6 +497,39 @@ namespace TM3ClientExtension.Services
             }
            
         }
+
+        public async Task<bool> UpdateEnrollmentToPillars(EnrollmentUserToPillars req)
+        {
+            try
+            {
+                var client = new HttpClient();
+                var request = new HttpRequestMessage(HttpMethod.Put, $"https://api.pillarshub.com/api/v1/Trees/243/Nodes/{req.CustomerId}");
+                request.Headers.Add("Authorization", "pDysjDEac5c9wByqJ8uvstEohcKsPBWfUoBXs6W5nVoQ");
+                request.Headers.Add("accept", "application/json");
+                var contentJson = new
+                {
+                    nodeId = req.CustomerId,
+                    uplineId = req.SponsorId,
+                    uplineLeg = ""
+                };
+                var content = new StringContent(
+                     JsonConvert.SerializeObject(contentJson),
+                     Encoding.UTF8,
+                     "application/+json"
+                 );
+                request.Content = content;
+                request.Content = content;
+                var response = await client.SendAsync(request);
+                response.EnsureSuccessStatusCode();
+                var result = await response.Content.ReadAsStringAsync();
+                return true;
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+        }
+
         public async Task<PillarUserModel> GetUserDetailsFromPillars(string email)
         {
             try

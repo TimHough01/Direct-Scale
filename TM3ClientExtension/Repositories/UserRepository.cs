@@ -30,6 +30,7 @@ namespace TM3ClientExtension.Repositories
         Task<int> GetAssociateByEmail(string email);
         Task<int> UpdateDefaultCardForAutoship(bool isdefault, string token);
         Task<List<SendItAcademy_MatrixData>> GetSendItAcademy_MatrixData();
+        Task<List<SendItAcademy_EnrollmentData>> GetSendItAcademy_EnrollmentData();
 
     }
     public class UserRepository : IUserRepository
@@ -396,6 +397,24 @@ namespace TM3ClientExtension.Repositories
             catch (Exception ex)
             {
                 return new List<SendItAcademy_MatrixData>();
+            }
+        }
+        public async Task<List<SendItAcademy_EnrollmentData>> GetSendItAcademy_EnrollmentData()
+        {
+            try
+            {
+                using (var dbConnection = new SqlConnection(await _dataService.GetClientConnectionString()))
+                {
+                    var sql = @$"select * from [Client].[AssociateSponsorRelation]";
+
+                    var GetSendItAcademy_EnrollmentData = await dbConnection.QueryAsync<SendItAcademy_EnrollmentData>(sql);
+
+                    return GetSendItAcademy_EnrollmentData.ToList();
+                }
+            }
+            catch (Exception ex)
+            {
+                return new List<SendItAcademy_EnrollmentData>();
             }
         }
     }
