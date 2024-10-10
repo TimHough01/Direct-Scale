@@ -71,7 +71,7 @@ namespace TM3ClientExtension.Services
             bool hasMoreUsers = true;
             if (UserRole == "")
             {
-                string[] UserRoles = { "suremember-business-consultant", "suremember-retail-customer", "suremember-preferred-customer" };
+                string[] UserRoles = { "business_consultant_whls", "retail_customer_final", "preferred_customer_whls" };
 
                 foreach (var item in UserRoles)
                 {
@@ -122,16 +122,14 @@ namespace TM3ClientExtension.Services
         }
 
         public async Task<List<Users>> GetWPUsers(int page, int per_page ,string UserRole )
-        {           
-                var client = new HttpClient();
-            var request = new HttpRequestMessage(HttpMethod.Get, $"https://stg-mytm3-317.uw2.rapydapps.cloud/wp-json/wc/v3/customers?page={page}&per_page={per_page}&role={UserRole}");
-            request.Headers.Add("Authorization", "Basic Y2tfYWFlNWRmMThjMTFhNDRhZjRhZGNkNzczZTljZjdiYmYzNjBhNjNlZDpjc182NTU1MzgzNWVlMGFlMjgyZTc5Y2NiMTNlNDY0YjJhY2FmNWFjZDFm");
-
+        {
+            var client = new HttpClient();
+            var request = new HttpRequestMessage(HttpMethod.Get, $"https://stg-mytm3-317.uw2.rapydapps.cloud/wp-json/wc/v3/customers?consumer_key=ck_ea693c034a2a2e895cbbef9c26b74216a914f623&consumer_secret=cs_0aec0c4773edf59b7c292670556ca2253b1d128b&page={page}&per_page={per_page}&role={UserRole}");
             var response = await client.SendAsync(request);
-                response.EnsureSuccessStatusCode();
-                var users = JsonConvert.DeserializeObject<List<Users>>(await response.Content.ReadAsStringAsync());
-                return users;
-            
+            response.EnsureSuccessStatusCode();
+            var users = JsonConvert.DeserializeObject<List<Users>>(await response.Content.ReadAsStringAsync());
+            return users;
+
         }
 
         public async Task<List<Users>> GetAllWPUsersSendItAcadamy(string userRole)

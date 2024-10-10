@@ -212,44 +212,31 @@ namespace TM3ClientExtension.Repositories
         {
             using (var dbConnection = new SqlConnection(await _dataService.GetClientConnectionString()))
             {
-                var sql = @$"WITH ranked_payments AS (
-                                SELECT DISTINCT 
-                                    cm.DistributorID AS user_id,
-                                    'nmi' AS Gateway_id,
-                                    ct.customer_vault_id AS token,
-                                    'CC' AS type,
-                                    cm.Input2,
-                                    cm.ProfileType,
-                                    cm.last_modified,
-                                    ROW_NUMBER() OVER (PARTITION BY cm.Input2 ORDER BY cm.last_modified DESC) AS rn,
-                                    CASE 
-                                        WHEN cm.ProfileType = 'primary' AND ROW_NUMBER() OVER (PARTITION BY cm.Input2 ORDER BY cm.last_modified DESC) = 1 THEN 1
-                                        ELSE 0
-                                    END AS is_default
-                                FROM 
-                                    CRM_PAYMENTS cm
-                                JOIN 
-                                    [Client].[Export_subscription_tokens] ct 
-                                    ON cm.DistributorID = ct.DirectScale_ID 
-                                    AND cm.Input2 = ct.Last4
-                                WHERE 
-                                    cm.FirstSix IS NOT NULL 
-                                    AND cm.ExternalID IS NOT NULL 
-                                    AND cm.Input2 IS NOT NULL
-                            )
-                            SELECT 
-                                user_id,
-                                Gateway_id,
-                                token,
-                                type,
-                                Input2,
-                                ProfileType,
-                                last_modified,
-                                is_default
-                            FROM 
-                                ranked_payments
-                            WHERE 
-                                rn = 1;
+                var sql = @$";WITH RankedPayments AS (
+    SELECT distinct
+        'nmi' AS gateway_id,
+        ExternalID AS token,
+         DistributorID AS user_id,
+        'CC' AS type,
+        ai.PaymentMethodID as PaymentMethodID,
+		ROW_NUMBER() OVER (PARTITION BY DistributorID ORDER BY DistributorID) AS rn,
+       COUNT(*)
+OVER (PARTITION BY DistributorID) AS user_count
+    FROM CRM_Payments cp
+	LEFT JOIN CRM_AutoShipInternal ai on ai.PaymentMethodID = cp.ExternalID
+	where ExternalID IS NOT NULL 
+    AND ExternalID NOT LIKE '%[^0-9]%' and Input2 is not null and FirstSix is not null 
+)
+SELECT distinct
+    gateway_id,
+    token,
+    user_id,
+    type,
+   CASE WHEN PaymentMethodID is not null THEN 1 WHEN user_count > 1 AND rn = 1  THEN 1 
+    WHEN user_count = 1 AND rn = 1 then 1 ELSE 0
+    END AS is_default
+FROM 
+    RankedPayments order by user_id asc;
 ";
 
                 var Pendingproductvalues = await dbConnection.QueryAsync<WPUserTokensrequest>(sql);

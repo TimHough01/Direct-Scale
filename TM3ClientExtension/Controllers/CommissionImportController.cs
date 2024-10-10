@@ -410,38 +410,38 @@ namespace TM3ClientExtension.Controllers
             }
             return Ok("Success");
         }
-        [HttpGet]
-        [Route("deletehistoricalbonus")]
-        public IActionResult deletehistoricalbonus()
-        {
+        //[HttpGet]
+        //[Route("deletehistoricalbonus")]
+        //public IActionResult deletehistoricalbonus()
+        //{
 
-            List<MatrixUserToPillars> pillarsdata = new List<MatrixUserToPillars>();
+        //    List<MatrixUserToPillars> pillarsdata = new List<MatrixUserToPillars>();
 
-            foreach (var sponsor in carddetails.GroupBy(x => x.sponsorEmail))
-            {
-                var sponsorDetails = _commissionImportservice.GetUserDetailsFromPillars(sponsor.Key).GetAwaiter().GetResult();
-                if (sponsorDetails != null)
-                {
-                    foreach (var customer in sponsor.ToList())
-                    {
-                        var UserDetails = _commissionImportservice.GetUserDetailsFromPillars(customer.userEmail).GetAwaiter().GetResult();
-                        if (UserDetails != null)
-                        {
-                            string textdata = customer.row_num == 1 ? "Left" : customer.row_num == 2 ? "Middle" : "Right";
-                            MatrixUserToPillars pillarsUserdata = new MatrixUserToPillars
-                            {
-                                UserID = UserDetails.Id,
-                                SponsorId = sponsorDetails.Id,
-                                uplineLeg = textdata
-                            };
-                            var result = _commissionImportservice.UpdateMatrixToPillars(pillarsUserdata).GetAwaiter().GetResult();
-                            pillarsdata.Add(pillarsUserdata);
-                        }
-                    }
-                }
+        //    foreach (var sponsor in carddetails.GroupBy(x => x.sponsorEmail))
+        //    {
+        //        var sponsorDetails = _commissionImportservice.GetUserDetailsFromPillars(sponsor.Key).GetAwaiter().GetResult();
+        //        if (sponsorDetails != null)
+        //        {
+        //            foreach (var customer in sponsor.ToList())
+        //            {
+        //                var UserDetails = _commissionImportservice.GetUserDetailsFromPillars(customer.userEmail).GetAwaiter().GetResult();
+        //                if (UserDetails != null)
+        //                {
+        //                    string textdata = customer.row_num == 1 ? "Left" : customer.row_num == 2 ? "Middle" : "Right";
+        //                    MatrixUserToPillars pillarsUserdata = new MatrixUserToPillars
+        //                    {
+        //                        UserID = UserDetails.Id,
+        //                        SponsorId = sponsorDetails.Id,
+        //                        uplineLeg = textdata
+        //                    };
+        //                    var result = _commissionImportservice.UpdateMatrixToPillars(pillarsUserdata).GetAwaiter().GetResult();
+        //                    pillarsdata.Add(pillarsUserdata);
+        //                }
+        //            }
+        //        }
 
-            }
-            return Ok("Success");
-        }
+        //    }
+        //    return Ok("Success");
+        //}
     }
 }
